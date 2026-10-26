@@ -20,14 +20,20 @@ public final class MixerConfig {
         public final boolean enabled;
         public final double level;
         public final Texture texture;
+        public final Oscillation oscillation;
         public Generator(String id, NoisePreset preset, boolean enabled, double level) {
             this(id, preset, enabled, level, Texture.CONTINUOUS);
         }
         public Generator(String id, NoisePreset preset, boolean enabled, double level, Texture texture) {
+            this(id,preset,enabled,level,texture,Oscillation.DEFAULT);
+        }
+        public Generator(String id, NoisePreset preset, boolean enabled, double level, Texture texture,Oscillation oscillation) {
             if (id == null || id.isEmpty() || preset == null) throw new IllegalArgumentException("A generator needs an ID and profile.");
             this.id = id; this.preset = preset; this.enabled = enabled; this.level = clamp(level);
             this.texture = preset.motion == null || texture == null ? Texture.CONTINUOUS : texture;
+            this.oscillation=oscillation==null?Oscillation.DEFAULT:oscillation;
         }
+        public boolean hasSignal(){return texture==Texture.CONTINUOUS||oscillation.tone>0||oscillation.noise>0;}
     }
     public final List<Generator> generators;
     public final double master;
@@ -46,9 +52,9 @@ public final class MixerConfig {
     }
     public boolean hasAudibleLayer() {
         if (master <= 0) return false;
-        for (Generator g : generators) if (g.enabled && g.level > 0) return true;
+        for (Generator g : generators) if (g.enabled && g.level > 0 && g.hasSignal()) return true;
         return false;
     }
-    public int enabledCount() { int n = 0; for (Generator g : generators) if (g.enabled && g.level > 0) n++; return n; }
+    public int enabledCount() { int n = 0; for (Generator g : generators) if (g.enabled && g.level > 0 && g.hasSignal()) n++; return n; }
     public static double clamp(double v) { return Double.isFinite(v) ? Math.max(0, Math.min(1, v)) : 0; }
 }

@@ -30,6 +30,12 @@
     "errors": 0
   },
   {
+    "suite": "app.wn.audio.ProceduralTest",
+    "tests": 9,
+    "failures": 0,
+    "errors": 0
+  },
+  {
     "suite": "app.wn.audio.SpectrumProfilerTest",
     "tests": 4,
     "failures": 0,

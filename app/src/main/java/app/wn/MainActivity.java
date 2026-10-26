@@ -125,6 +125,10 @@ public final class MainActivity extends Activity {
                                 changed(); dialog.dismiss(); renderGenerators();
                             } catch (RuntimeException e) { Ui.error(this, "Generator type", e.getMessage()); }
                         }).setNegativeButton("Cancel", null).show());
+                if(layer.texture==MixerConfig.Texture.OSCILLATING) {
+                    Button fine=Ui.button(this,"Fine controls & preview",false);Ui.add(this,card,fine,8);
+                    fine.setOnClickListener(v->startActivity(new Intent(this,OscillationActivity.class).putExtra("generator",layer.id)));
+                }
             }
             LinearLayout label = Ui.row(this);
             label.addView(Ui.text(this, "Level", 13, Ui.INK, false), new LinearLayout.LayoutParams(0, -2, 1));

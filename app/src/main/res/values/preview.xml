@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="preview_finished">Preview finished</string>
+    <string name="preview_stopped">Preview stopped</string>
+    <string name="preview_loading">Loading audio…</string>
+    <string name="preview_cancelled">Loading cancelled</string>
+    <string name="preview_failed">Could not load preview</string>
+</resources>

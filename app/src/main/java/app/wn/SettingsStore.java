@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import app.wn.audio.MixerConfig;
 import app.wn.audio.NoisePreset;
+import app.wn.audio.Oscillation;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -26,12 +27,17 @@ public final class SettingsStore {
         public final boolean enabled;
         public final double level;
         public final MixerConfig.Texture texture;
+        public final Oscillation oscillation;
         Layer(String id, String profileId, boolean enabled, double level) {
             this(id, profileId, enabled, level, MixerConfig.Texture.CONTINUOUS);
         }
         Layer(String id, String profileId, boolean enabled, double level, MixerConfig.Texture texture) {
+            this(id,profileId,enabled,level,texture,Oscillation.DEFAULT);
+        }
+        Layer(String id, String profileId, boolean enabled, double level, MixerConfig.Texture texture,Oscillation oscillation) {
             this.id = id; this.profileId = profileId; this.enabled = enabled; this.level = MixerConfig.clamp(level);
             this.texture = texture;
+            this.oscillation=oscillation;
         }
     }
     private static SettingsStore instance;
@@ -43,6 +49,7 @@ public final class SettingsStore {
     private double master;
     private MixerConfig.Width width;
     private boolean adjustedInstalled;
+    private boolean neuralInstalled;
 
     public static synchronized SettingsStore get(Context context) {
         if (instance == null) instance = new SettingsStore(context.getApplicationContext());
@@ -51,6 +58,7 @@ public final class SettingsStore {
     SettingsStore(Context context) {
         prefs = context.getSharedPreferences("noise_settings", Context.MODE_PRIVATE);
         adjustedInstalled = prefs.getBoolean("adjusted_sample_v1", false);
+        neuralInstalled=prefs.getBoolean("adjusted_neural_v1",false);
         master = prefs.getFloat("master", .25f);
         try { width = MixerConfig.Width.valueOf(prefs.getString("width", "DEFAULT")); }
         catch (IllegalArgumentException e) { width = MixerConfig.Width.DEFAULT; }
@@ -76,7 +84,8 @@ public final class SettingsStore {
                     String id = g.getString("id"), profile = g.optString("profileId", "");
                     if ("default".equals(id) || findProfile(profile) != null)
                         layers.add(new Layer(id, "default".equals(id) ? null : profile, g.optBoolean("enabled", true), g.optDouble("level", .5),
-                                "OSCILLATING".equals(g.optString("texture")) ? MixerConfig.Texture.OSCILLATING : MixerConfig.Texture.CONTINUOUS));
+                                "OSCILLATING".equals(g.optString("texture")) ? MixerConfig.Texture.OSCILLATING : MixerConfig.Texture.CONTINUOUS,
+                                Oscillation.parse(g.optJSONObject("oscillation"))));
                 }
             } catch (JSONException | IllegalArgumentException e) {
                 PlaybackStatus.error = "Some saved settings could not be read.";
@@ -88,7 +97,22 @@ public final class SettingsStore {
             while (layers.size() > MixerConfig.MAX_GENERATORS) layers.remove(layers.size() - 1);
         }
         installAdjusted(context);
+        installNeural(context);
         rebuild();
+    }
+    private void installNeural(Context context) {
+        if(neuralInstalled)return;
+        SavedProfile old=findProfile("builtin-adjusted-v1");
+        if(old!=null)try(java.io.InputStream input=context.getAssets().open("adjusted.json")) {
+            NoisePreset bundled=ProfileFiles.read(input);
+            JSONObject json=new JSONObject(old.preset.toJson()),motion=json.optJSONObject("motion");
+            JSONObject model=new JSONObject(bundled.toJson()).getJSONObject("motion").optJSONObject("model");
+            if(motion!=null && !motion.has("model") && model!=null) {
+                motion.put("model",model);
+                profiles.set(profiles.indexOf(old),new SavedProfile(old.id,NoisePreset.parse(json.toString())));
+            }
+        }catch(java.io.IOException|JSONException e){throw new IllegalStateException("Could not install the motion model.",e);}
+        neuralInstalled=true;persist(true);
     }
     private void installAdjusted(Context context) {
         if (adjustedInstalled || profiles.size() >= MAX_PROFILES) return;
@@ -114,14 +138,14 @@ public final class SettingsStore {
         for (Layer l : layers) {
             SavedProfile p = l.profileId == null ? null : findProfile(l.profileId);
             if (l.profileId == null || p != null)
-                generators.add(new MixerConfig.Generator(l.id, p == null ? NoisePreset.DEFAULT : p.preset, l.enabled, l.level, l.texture));
+                generators.add(new MixerConfig.Generator(l.id, p == null ? NoisePreset.DEFAULT : p.preset, l.enabled, l.level, l.texture,l.oscillation));
         }
         current = new MixerConfig(generators, master, width);
         revision++;
     }
     private JSONObject layerJson(Layer l) throws JSONException {
         return new JSONObject().put("id", l.id).put("profileId", l.profileId == null ? "" : l.profileId)
-                .put("enabled", l.enabled).put("level", l.level).put("texture", l.texture.name());
+                .put("enabled", l.enabled).put("level", l.level).put("texture", l.texture.name()).put("oscillation",l.oscillation.toJson());
     }
     @SuppressLint("ApplySharedPref")
     private void persist(boolean commit) {
@@ -131,6 +155,7 @@ public final class SettingsStore {
             for (Layer l : layers) scene.put(layerJson(l));
             SharedPreferences.Editor edit = prefs.edit().putInt("schema", 2)
                     .putBoolean("adjusted_sample_v1", adjustedInstalled)
+                    .putBoolean("adjusted_neural_v1",neuralInstalled)
                     .putString("generators", scene.toString()).putFloat("master", (float) master).putString("width", width.name());
             if (commit) {
                 edit.putString("catalogue", catalogue.toString());
@@ -200,7 +225,7 @@ public final class SettingsStore {
             if ("default".equals(id)) p = null;
             else if (findProfile(p) == null) throw new IllegalArgumentException("Profile no longer exists.");
             MixerConfig.Texture texture = p == null || findProfile(p).preset.motion == null ? MixerConfig.Texture.CONTINUOUS : l.texture;
-            layers.set(i, new Layer(id, p, enabled == null ? l.enabled : enabled, level == null ? l.level : level, texture));
+            layers.set(i, new Layer(id, p, enabled == null ? l.enabled : enabled, level == null ? l.level : level, texture,l.oscillation));
             persist(false); rebuild(); return;
         }
     }
@@ -211,11 +236,26 @@ public final class SettingsStore {
             SavedProfile profile = findProfile(old.profileId);
             if (profile == null || profile.preset.motion == null) throw new IllegalArgumentException("This profile has no motion data.");
             if (texture == null) throw new IllegalArgumentException("Choose a generator type.");
-            layers.set(i, new Layer(id, old.profileId, old.enabled, old.level, texture));
+            layers.set(i, new Layer(id, old.profileId, old.enabled, old.level, texture,old.oscillation));
             try { persist(true); } catch (RuntimeException e) { layers.set(i, old); throw e; }
             rebuild(); return;
         }
     }
+    public synchronized Layer layer(String id) {for(Layer l:layers)if(l.id.equals(id))return l;return null;}
+    public synchronized void oscillation(String id,int field,double value) {
+        Layer old=layer(id);if(old==null)return;
+        setOscillation(old,old.oscillation.with(field,value),false);
+    }
+    public synchronized void resetOscillation(String id) {
+        Layer old=layer(id);if(old!=null)setOscillation(old,Oscillation.DEFAULT,true);
+    }
+    private void setOscillation(Layer old,Oscillation value,boolean commit) {
+        int index=layers.indexOf(old);
+        layers.set(index,new Layer(old.id,old.profileId,old.enabled,old.level,old.texture,value));
+        try{persist(commit);}catch(RuntimeException e){layers.set(index,old);throw e;}
+        rebuild();
+    }
+    public synchronized void saveControls(){persist(true);}
     public synchronized void output(double level, MixerConfig.Width value) {
         master = MixerConfig.clamp(level); width = value == null ? MixerConfig.Width.DEFAULT : value;
         persist(false); rebuild();

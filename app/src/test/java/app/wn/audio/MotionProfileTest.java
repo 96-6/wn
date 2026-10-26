@@ -7,7 +7,7 @@ import java.util.ArrayList;
 public class MotionProfileTest {
     private static final String JSON = "{\"version\":1,\"name\":\"Motion\",\"bands\":[{\"lowHz\":80,\"highHz\":6800,\"level\":1}],"
             + "\"motion\":{\"stepMs\":500,\"pitchHz\":[240,380,300,240],\"energy\":[0.2,1,0.6,0.2]}}";
-    @Test public void motionSurvivesExportAndHasContinuousLoopControls() {
+    @Test public void motionMeasurementsSurviveExport() {
         NoisePreset a = NoisePreset.parse(JSON), b = NoisePreset.parse(a.toJson());
         assertEquals(4, b.motion.size);
         for (double t=0; t<5; t+=.071) {

@@ -1,0 +1,11 @@
+{
+  "backend": "numpy-cpu",
+  "epochs": 1800,
+  "examples": 411,
+  "parameters": 335,
+  "negative_log_likelihood_before": 3.947239329600534,
+  "negative_log_likelihood_after": -0.47555226556237506,
+  "seconds": 0.9274755649998951,
+  "seed": 17,
+  "model": "4 \u2192 16 tanh \u2192 3 bivariate Gaussian mixtures"
+}

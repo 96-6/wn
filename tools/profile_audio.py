@@ -97,6 +97,23 @@ def validate_profile(value):
         if min(pitch) < 60 or max(pitch) > 1000 or min(energy) < 0 or max(energy) > 1:
             raise ProfileError('Motion pitch must be 60–1000 Hz and energy 0–1.')
         out['motion'] = {'stepMs': step, 'pitchHz': pitch, 'energy': energy}
+        if 'model' in motion:
+            model=motion['model']
+            if not isinstance(model,dict) or model.get('type')!='mdn1':
+                raise ProfileError('Unsupported motion model.')
+            clean={'type':'mdn1'}
+            for key,low,high in [('pitchMean',math.log(60),math.log(1000)),('pitchScale',.005,2),
+                                 ('energyMean',0,1),('energyScale',.005,2)]:
+                value=number(model.get(key))
+                if not low<=value<=high:raise ProfileError('Invalid model normalization: '+key)
+                clean[key]=value
+            for key,count in [('w1',64),('b1',16),('w2',240),('b2',15)]:
+                values=model.get(key)
+                if not isinstance(values,list) or len(values)!=count:raise ProfileError('Invalid model matrix: '+key)
+                values=[number(v) for v in values]
+                if max(abs(v) for v in values)>100:raise ProfileError('Model weights are too large.')
+                clean[key]=values
+            out['motion']['model']=clean
     return out
 
 class Profiler:

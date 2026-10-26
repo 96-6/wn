@@ -22,6 +22,7 @@
         </activity>
         <activity android:name=".ProfilesActivity" android:exported="false" />
         <activity android:name=".ProfilingActivity" android:exported="false" />
+        <activity android:name=".OscillationActivity" android:exported="false" />
         <service android:name=".NoiseService" android:exported="false"
             android:stopWithTask="false" android:foregroundServiceType="mediaPlayback" />
     </application>

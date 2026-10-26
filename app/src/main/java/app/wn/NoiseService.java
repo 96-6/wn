@@ -89,11 +89,15 @@ public final class NoiseService extends Service {
         String action = intent == null ? null : intent.getAction();
         if (STOP.equals(action)) { stopByUser("Stopped"); return START_NOT_STICKY; }
         if (UPDATE.equals(action)) {
+            if(output==null&&!settings.wantsPlayback()){stopSelf();return START_NOT_STICKY;}
             if (output != null) output.update(settings.snapshot());
             if (foreground) refreshNotification();
             return settings.wantsPlayback() ? START_STICKY : START_NOT_STICKY;
         }
-        if (START.equals(action) || (intent == null && settings.wantsPlayback())) begin();
+        if (START.equals(action) || (intent == null && settings.wantsPlayback())) {
+            begin();
+            if(output!=null&&intent!=null)PreviewController.activate(intent.getStringExtra("preview"));
+        }
         else stopSelf();
         return settings.wantsPlayback() ? START_STICKY : START_NOT_STICKY;
     }
@@ -164,6 +168,7 @@ public final class NoiseService extends Service {
     }
 
     private void stopByUser(String message) {
+        PreviewController.stop();
         settings.setWantsPlayback(false);
         pausedByFocus = false;
         releaseOutput();
@@ -201,6 +206,7 @@ public final class NoiseService extends Service {
     }
 
     @Override public void onDestroy() {
+        PreviewController.stop();
         releaseOutput();
         if (ownsFocus) audioManager.abandonAudioFocusRequest(focus);
         if (session != null) { session.setActive(false); session.release(); }

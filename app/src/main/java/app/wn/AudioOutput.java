@@ -45,7 +45,9 @@ final class AudioOutput {
             float[] block = new float[NoiseMixer.FRAMES * 2];
             output.play();
             while (running) {
-                mixer.render(block, config, duck);
+                MixerConfig current=config;double attenuation=duck;
+                mixer.render(block, current, attenuation);
+                PreviewController.render(block,attenuation,current.master);
                 int offset = 0;
                 while (running && offset < block.length) {
                     int written = output.write(block, offset, block.length - offset, AudioTrack.WRITE_BLOCKING);

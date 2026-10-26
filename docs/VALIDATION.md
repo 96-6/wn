@@ -1,18 +1,19 @@
-# WN 1.2.0 validation · 2026-10-26
+# WN 1.3.0 validation · 2026-10-26
 
-Package app.wn, version code 3, minimum API 26, target/compile API 35. Signed development APK.
+Package app.wn, version code 4, minimum API 26, target/compile API 35. Signed development APK; signing certificate matches 1.1/1.2 for in-place updates.
 
-- Android application and instrumentation APKs: compiled successfully.
-- JVM tests: **30 passed**, zero failures/errors. Includes motion JSON validation/round trips, joined spectral bands, oscillator spectral containment, both types mixed with eight generators and output peak limits.
-- Android lint: **No issues found**.
-- PC tests: **18 passed**, including ten codec/container variants, phase-safe stereo, known pitch/cadence tracking, padded spectral selection and motion JSON preservation.
-- Android instrumentation suite: 12 tests. Four new tests cover first-install Adjusted, upgrade preservation, a full eight-generator scene, persistent type selection, removal back to Default and actual simultaneous continuous/oscillating background playback. The existing eight cover playback/media controls, saved profiles, JSON persistence, cancellation and file decoding. See [current CI results](https://github.com/96-6/wn/actions/workflows/android.yml).
-- APK signature verified with apksigner. Signing certificate matches 1.1.0, allowing an in-place update.
+- JVM: **39 tests passed**, zero failures/errors. Includes Java/exporter neural inference parity, long stochastic rollouts without the source-period repeat, random fallback for old profiles, extreme controls/mixes, spectral limits and preview resampling/RMS/limiting/reference stability.
+- PC: **21 tests passed**. Includes numerical gradient verification for the NumPy trainer, improved training likelihood, portable weights validation, profiling and codec/container coverage.
+- Android lint: zero errors; one advisory that an existing Android test dependency has a newer version.
+- App and instrumentation APKs compiled. The 17-test Android device suite adds live slider/Reset wiring, settings persistence, four preview codecs, once-through playback, normal-playback restoration and notification Stop. See [current CI results](https://github.com/96-6/wn/actions/workflows/android.yml).
+- APK signature verified with apksigner.
 
-APK SHA-256: 87a49a482d0c0f2b15e8ea16d361cb704209fc7a1755711a617bc80037fa7f22
+APK SHA-256: 3b30f79e53468a2e0401959083adb865572124865277b9312ff1f7c12f8d2c2f
 
-The profile analyzes the complete supplied 32.997 seconds and contains 23 adjoining gain regions from 80 to 6,780 Hz, covering 99.89% of mean spectral energy. The motion template contains 413 pitch/energy points. See adjusted-analysis.json and adjusted-spectrum.png. The source audio and signing key are not published.
+The built-in 335-parameter mixture-density network was trained on 411 transitions from the supplied recording's measured pitch/energy controls, using NumPy/CPU for 1,800 epochs (about 0.93 seconds). See motion-training.json. Training likelihood reports fit, not a measurement of intelligibility or masking effectiveness. The Colab/PyTorch CUDA runner is provided; local training/testing used CPU.
 
-Hardware microphone capture and manufacturer battery management still require checking on an actual phone. Measured spectral coverage does not measure real-room speech intelligibility or prove masking effectiveness. Profiles are static spectral shapes with optional procedural motion, not speaker identification or phase cancellation.
+Playback samples new stochastic control events and durations, with independent seeds and occasional data-distribution anchors. It never advances through or wraps the source timeline. Older untrained motion JSON uses conditional random resampling. The 80–6,780 Hz spectral selection remains the same. Fine-control defaults retain the previous balance, detuning and nominal speed; migration preserves mixer/profile choices.
 
-1.2 updates 1.1 in place. Users coming directly from 1.0 must export their JSON before uninstalling 1.0 because its signing key is unavailable.
+Preview uses one AudioTrack and the existing foreground-service/focus/Stop path. Its file plays once, with a roughly +6 dB starting masker/source RMS ratio by default. After initial calibration, the source reference is held fixed while gains change; Rebalance is explicit. A linked peak limiter protects the sum. File data is held only in bounded memory. Source audio and the signing key are not published.
+
+Real-room masking depends on speaker level, placement and acoustics. This is stochastic spectral masking, not phase cancellation or speaker identification. Hardware microphone capture and manufacturer battery management still require an actual phone check.

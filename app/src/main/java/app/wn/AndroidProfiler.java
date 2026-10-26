@@ -72,6 +72,17 @@ final class AndroidProfiler {
 
     static SpectrumProfiler.Result audioFile(Context context, Uri uri, String name, double start, double seconds,
                                              SpectrumProfiler.Tuning tuning, Control control, Progress progress) throws IOException {
+        return decodeFile(context,uri,name,start,seconds,tuning,control,progress,null);
+    }
+    interface PcmObserver { void accept(float[] data,int length,int rate,int channels); }
+    static app.wn.audio.PreviewClip previewFile(Context context,Uri uri,double start,double seconds,Control control,Progress progress) throws IOException {
+        if(seconds<1||seconds>60)throw new IllegalArgumentException("Preview duration must be 1–60 seconds.");
+        app.wn.audio.PreviewClip.Builder builder=new app.wn.audio.PreviewClip.Builder();
+        decodeFile(context,uri,"Preview",start,seconds,SpectrumProfiler.Tuning.broad(),control,progress,builder::accept);
+        return builder.finish();
+    }
+    private static SpectrumProfiler.Result decodeFile(Context context, Uri uri, String name, double start, double seconds,
+                                             SpectrumProfiler.Tuning tuning, Control control, Progress progress,PcmObserver observer) throws IOException {
         MediaExtractor extractor = new MediaExtractor(); MediaCodec codec = null;
         try {
             check(control);
@@ -94,7 +105,7 @@ final class AndroidProfiler {
             String mime = format.getString(MediaFormat.KEY_MIME);
             PcmSink sink = null;
             if ("audio/raw".equals(mime)) {
-                sink = new PcmSink(format);
+                sink = new PcmSink(format,observer);
                 int capacity = format.containsKey(MediaFormat.KEY_MAX_INPUT_SIZE) ? format.getInteger(MediaFormat.KEY_MAX_INPUT_SIZE) : 262144;
                 ByteBuffer data = ByteBuffer.allocateDirect(Math.max(65536, Math.min(capacity, 8 * 1024 * 1024)));
                 long lastUpdate = 0;
@@ -132,12 +143,12 @@ final class AndroidProfiler {
                     int output = codec.dequeueOutputBuffer(info, 10000);
                     if (output == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
                         MediaFormat next = codec.getOutputFormat();
-                        if (sink == null) sink = new PcmSink(next);
+                        if (sink == null) sink = new PcmSink(next,observer);
                         else sink.checkFormat(next);
                     } else if (output >= 0) {
                         try {
                             if (info.size > 0 && (info.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) == 0) {
-                                if (sink == null) sink = new PcmSink(codec.getOutputFormat());
+                                if (sink == null) sink = new PcmSink(codec.getOutputFormat(),observer);
                                 ByteBuffer buffer = codec.getOutputBuffer(output);
                                 if (buffer == null) throw new IOException("Decoder output unavailable.");
                                 buffer.position(info.offset).limit(info.offset + info.size);
@@ -166,7 +177,9 @@ final class AndroidProfiler {
         final int rate, channels, encoding, sampleBytes;
         final SpectrumProfiler profiler;
         final float[] block;
-        PcmSink(MediaFormat format) throws IOException {
+        final PcmObserver observer;
+        PcmSink(MediaFormat format,PcmObserver observer) throws IOException {
+            this.observer=observer;
             rate = format.getInteger(MediaFormat.KEY_SAMPLE_RATE); channels = format.getInteger(MediaFormat.KEY_CHANNEL_COUNT);
             encoding = format.containsKey(MediaFormat.KEY_PCM_ENCODING) ? format.getInteger(MediaFormat.KEY_PCM_ENCODING) : AudioFormat.ENCODING_PCM_16BIT;
             sampleBytes = encoding == 3 ? 1 : encoding == 2 ? 2 : encoding == 21 ? 3 : encoding == 4 || encoding == 22 ? 4 : 0;
@@ -198,9 +211,13 @@ final class AndroidProfiler {
                     } else value = (float) (bytes.getInt() / 2147483648.0);
                     block[n++] = value;
                 }
-                if (n == block.length) { profiler.accept(block, 0, n); n = 0; }
+                if (n == block.length) { publish(n); n = 0; }
             }
-            if (n > 0) profiler.accept(block, 0, n);
+            if (n > 0) publish(n);
+        }
+        void publish(int length) {
+            profiler.accept(block,0,length);
+            if(observer!=null)observer.accept(block,length,rate,channels);
         }
     }
 }
