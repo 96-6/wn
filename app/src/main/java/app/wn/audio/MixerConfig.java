@@ -8,7 +8,7 @@ import java.util.List;
 /** Immutable mix of independently seeded noise generators. */
 public final class MixerConfig {
     public static final int MAX_GENERATORS = 8;
-    public enum Texture { CONTINUOUS, OSCILLATING }
+    public enum Texture { CONTINUOUS, OSCILLATING, VOICE }
     public enum Width {
         MONO(0), NARROW(.4), DEFAULT(1), WIDE(1.5);
         public final double side;
@@ -21,19 +21,25 @@ public final class MixerConfig {
         public final double level;
         public final Texture texture;
         public final Oscillation oscillation;
+        public final Oscillation voiceControls;
         public Generator(String id, NoisePreset preset, boolean enabled, double level) {
             this(id, preset, enabled, level, Texture.CONTINUOUS);
         }
         public Generator(String id, NoisePreset preset, boolean enabled, double level, Texture texture) {
-            this(id,preset,enabled,level,texture,Oscillation.DEFAULT);
+            this(id,preset,enabled,level,texture,Oscillation.DEFAULT,null);
         }
         public Generator(String id, NoisePreset preset, boolean enabled, double level, Texture texture,Oscillation oscillation) {
+            this(id,preset,enabled,level,texture,oscillation,oscillation);
+        }
+        public Generator(String id,NoisePreset preset,boolean enabled,double level,Texture texture,Oscillation oscillation,Oscillation voiceControls) {
             if (id == null || id.isEmpty() || preset == null) throw new IllegalArgumentException("A generator needs an ID and profile.");
             this.id = id; this.preset = preset; this.enabled = enabled; this.level = clamp(level);
-            this.texture = preset.motion == null || texture == null ? Texture.CONTINUOUS : texture;
+            this.texture = texture==null||preset.motion==null||(texture==Texture.VOICE&&preset.voice==null)?Texture.CONTINUOUS:texture;
             this.oscillation=oscillation==null?Oscillation.DEFAULT:oscillation;
+            this.voiceControls=voiceControls==null?(preset.voice==null?Oscillation.DEFAULT:preset.voice.defaults()):voiceControls;
         }
-        public boolean hasSignal(){return texture==Texture.CONTINUOUS||oscillation.tone>0||oscillation.noise>0;}
+        public Oscillation controls(){return texture==Texture.VOICE?voiceControls:oscillation;}
+        public boolean hasSignal(){return texture==Texture.CONTINUOUS||controls().tone>0||controls().noise>0;}
     }
     public final List<Generator> generators;
     public final double master;

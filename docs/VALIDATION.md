@@ -1,19 +1,19 @@
-# WN 1.3.0 validation · 2026-10-26
+# WN 1.4.0 validation · 2026-10-27
 
-Package app.wn, version code 4, minimum API 26, target/compile API 35. Signed development APK; signing certificate matches 1.1/1.2 for in-place updates.
+Package app.wn, version code 5, minimum API 26, target/compile API 35. Signed development APK; certificate matches 1.1–1.3 for in-place updates.
 
-- JVM: **39 tests passed**, zero failures/errors. Includes Java/exporter neural inference parity, long stochastic rollouts without the source-period repeat, random fallback for old profiles, extreme controls/mixes, spectral limits and preview resampling/RMS/limiting/reference stability.
-- PC: **21 tests passed**. Includes numerical gradient verification for the NumPy trainer, improved training likelihood, portable weights validation, profiling and codec/container coverage.
-- Android lint: zero errors; one advisory that an existing Android test dependency has a newer version.
-- App and instrumentation APKs compiled. The 17-test Android device suite adds live slider/Reset wiring, settings persistence, four preview codecs, once-through playback, normal-playback restoration and notification Stop. See [current CI results](https://github.com/96-6/wn/actions/workflows/android.yml).
-- APK signature verified with apksigner.
+- JVM: **47 tests passed**, zero failures/errors. Includes learned vocal-state JSON validation/round trips, noise-baseline equivalence, fresh randomized voice audio, vocal spectral bounds, eight-generator extreme controls, independent mode controls and crossfades, neural exporter parity, and preview/RMS checks.
+- PC: **26 tests passed**. Includes LPC estimation, valid codebooks for stationary voices, opposite-phase stereo, voice JSON preservation/rejection, neural gradient verification, training and codec/container profiling.
+- Android lint: zero errors; one existing advisory about a newer Android test dependency.
+- App and instrumentation APKs compiled. The **21-test Android suite** adds migration preservation, voice preset/count controls, live preview type changes without resetting the source, and background speech-like playback/notification Stop. See [current CI results](https://github.com/96-6/wn/actions/workflows/android.yml).
+- APK signature verified with apksigner; packaged voice data matches the source JSON.
 
-APK SHA-256: 3b30f79e53468a2e0401959083adb865572124865277b9312ff1f7c12f8d2c2f
+APK SHA-256: 0ea77be6e267c915aa5fcb9cd62c098194a75f4be273586551c4f251d2396833
 
-The built-in 335-parameter mixture-density network was trained on 411 transitions from the supplied recording's measured pitch/energy controls, using NumPy/CPU for 1,800 epochs (about 0.93 seconds). See motion-training.json. Training likelihood reports fit, not a measurement of intelligibility or masking effectiveness. The Colab/PyTorch CUDA runner is provided; local training/testing used CPU.
+The comparison scores 1,290 mixtures from the real Java synthesis core, with separate fit/selection/test portions of the supplied recording, 10 selection seeds, 20 different test seeds, 0/+3/+6 masker ratios, full-band RMS matching and a LUFS-matched secondary check. Both selected new variants improve the final-test STOI/ESTOI means over the older modes. Noise-first is the primary ESTOI recommendation; the speech-like blend is close. See [protocol, numbers and limits](VOICE_MASKER_COMPARISON.md), voice-comparison.json and the complete CSV. Final-core reference re-renders reproduce the archived metric cases.
 
-Playback samples new stochastic control events and durations, with independent seeds and occasional data-distribution anchors. It never advances through or wraps the source timeline. Older untrained motion JSON uses conditional random resampling. The 80–6,780 Hz spectral selection remains the same. Fine-control defaults retain the previous balance, detuning and nominal speed; migration preserves mixer/profile choices.
+The supplied profile keeps its original spectral bands and pitch/energy network, adding a 24-state vocal-envelope/transition model fitted to the full recording. Each speech stream samples fresh stochastic states and timings. No source waveform or timeline loops are used. Noise-first avoids ongoing voice synthesis when voice level is zero. Scene-only changes do not repeatedly serialize the profile catalogue. Existing oscillator controls, levels, profile names, stereo width and generator choices are preserved separately from voice settings.
 
-Preview uses one AudioTrack and the existing foreground-service/focus/Stop path. Its file plays once, with a roughly +6 dB starting masker/source RMS ratio by default. After initial calibration, the source reference is held fixed while gains change; Rebalance is explicit. A linked peak limiter protects the sum. File data is held only in bounded memory. Source audio and the signing key are not published.
+Generated-only MP3 samples are provided for listening. They are not used for quantitative scoring. The original recording and signing key are not published. PC/Colab audio training now creates voice-capable JSON; existing JSON keeps its voice data. On-device sparse profiling continues to create spectral-noise profiles.
 
-Real-room masking depends on speaker level, placement and acoustics. This is stochastic spectral masking, not phase cancellation or speaker identification. Hardware microphone capture and manufacturer battery management still require an actual phone check.
+These are digital monaural intelligibility predictions for one recording, not human word scores, proof of speaker-specific cancellation or calibrated room tests. Real performance depends on the speaker, level, placement and room. Hardware microphone capture and manufacturer battery behavior still require actual-phone checks.

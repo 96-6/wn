@@ -1,0 +1,500 @@
+{
+  "method": "full-band equal-RMS primary and LUFS-matched secondary, monaural actual Java synthesis, 2 s warmup, common base noise seeds, no clipping",
+  "source_sha256": "e1f219c0455339b5aae01b52274a14f219f5c48147bb40e01672554498124ec0",
+  "source_seconds": 32.99679166666667,
+  "fit_seconds": [
+    0,
+    20
+  ],
+  "selection_seconds": [
+    20,
+    26
+  ],
+  "test_seconds": [
+    26,
+    32.99679166666667
+  ],
+  "selection_seeds": [
+    11,
+    22,
+    33,
+    44,
+    55,
+    66,
+    77,
+    88,
+    99,
+    110
+  ],
+  "test_seeds": [
+    101,
+    202,
+    303,
+    404,
+    505,
+    606,
+    707,
+    808,
+    909,
+    1010,
+    1111,
+    1212,
+    1313,
+    1414,
+    1515,
+    1616,
+    1717,
+    1818,
+    1919,
+    2020
+  ],
+  "selection_reference_levels": {
+    "rms": 0.2121594155643683,
+    "lufs": -12.72558489049475
+  },
+  "test_reference_levels": {
+    "rms": 0.18868067303059952,
+    "lufs": -13.552302333747447
+  },
+  "masker_over_source_db": [
+    0,
+    3,
+    6
+  ],
+  "voice_streams": 4,
+  "training": {
+    "backend": "numpy-cpu",
+    "epochs": 1800,
+    "examples": 248,
+    "parameters": 335,
+    "negative_log_likelihood_before": 3.9374670798890397,
+    "negative_log_likelihood_after": -1.0701281344546392,
+    "seconds": 0.5234349289999045,
+    "seed": 17,
+    "model": "4 \u2192 16 tanh \u2192 3 bivariate Gaussian mixtures"
+  },
+  "voice_training": {
+    "states": 24,
+    "spectral_bands": 24,
+    "lpc_order": 16,
+    "frames": 250,
+    "mean_voicing": 0.5402724012580802,
+    "method": "LPC spectral-envelope codebook and non-cyclic transition statistics"
+  },
+  "selection": [
+    {
+      "name": "continuous-v1.3",
+      "mode": "CONTINUOUS",
+      "mix": null,
+      "tilt": null,
+      "stoi": 0.37236142570435704,
+      "estoi": 0.229118740800121,
+      "compute_seconds_per_audio_second": 0.027575587874997608
+    },
+    {
+      "name": "oscillating-v1.3",
+      "mode": "OSCILLATING",
+      "mix": null,
+      "tilt": null,
+      "stoi": 0.36602682620112376,
+      "estoi": 0.23191296168370112,
+      "compute_seconds_per_audio_second": 0.03471863998749995
+    },
+    {
+      "name": "voice-tilt-1-mix0",
+      "mode": "VOICE",
+      "mix": 0.0,
+      "tilt": -1.0,
+      "stoi": 0.4435951875229883,
+      "estoi": 0.28833173071175583,
+      "compute_seconds_per_audio_second": 0.031045514874995205
+    },
+    {
+      "name": "voice-tilt-1-mix0.05",
+      "mode": "VOICE",
+      "mix": 0.05,
+      "tilt": -1.0,
+      "stoi": 0.42343565376729536,
+      "estoi": 0.2739640407712234,
+      "compute_seconds_per_audio_second": 0.05269963401249811
+    },
+    {
+      "name": "voice-tilt-1-mix0.1",
+      "mode": "VOICE",
+      "mix": 0.1,
+      "tilt": -1.0,
+      "stoi": 0.41032569620125636,
+      "estoi": 0.26390311050381937,
+      "compute_seconds_per_audio_second": 0.04930281591250037
+    },
+    {
+      "name": "voice-tilt-1-mix0.25",
+      "mode": "VOICE",
+      "mix": 0.25,
+      "tilt": -1.0,
+      "stoi": 0.38721336750981017,
+      "estoi": 0.2459618068627803,
+      "compute_seconds_per_audio_second": 0.048376384662503824
+    },
+    {
+      "name": "voice-tilt-1-mix0.5",
+      "mode": "VOICE",
+      "mix": 0.5,
+      "tilt": -1.0,
+      "stoi": 0.36932037603814366,
+      "estoi": 0.23271644434216826,
+      "compute_seconds_per_audio_second": 0.04899535155000194
+    },
+    {
+      "name": "voice-tilt-0.5-mix0",
+      "mode": "VOICE",
+      "mix": 0.0,
+      "tilt": -0.5,
+      "stoi": 0.3791963329103512,
+      "estoi": 0.2339101445584544,
+      "compute_seconds_per_audio_second": 0.02682609297500562
+    },
+    {
+      "name": "voice-tilt-0.5-mix0.05",
+      "mode": "VOICE",
+      "mix": 0.05,
+      "tilt": -0.5,
+      "stoi": 0.3768181176558666,
+      "estoi": 0.23316968425338352,
+      "compute_seconds_per_audio_second": 0.04809646283750339
+    },
+    {
+      "name": "voice-tilt-0.5-mix0.1",
+      "mode": "VOICE",
+      "mix": 0.1,
+      "tilt": -0.5,
+      "stoi": 0.3745017327615397,
+      "estoi": 0.23233633816751664,
+      "compute_seconds_per_audio_second": 0.04823187063750538
+    },
+    {
+      "name": "voice-tilt-0.5-mix0.25",
+      "mode": "VOICE",
+      "mix": 0.25,
+      "tilt": -0.5,
+      "stoi": 0.3687314740775061,
+      "estoi": 0.22947831371479216,
+      "compute_seconds_per_audio_second": 0.04608765992501276
+    },
+    {
+      "name": "voice-tilt-0.5-mix0.5",
+      "mode": "VOICE",
+      "mix": 0.5,
+      "tilt": -0.5,
+      "stoi": 0.3636137369992598,
+      "estoi": 0.22739967948227177,
+      "compute_seconds_per_audio_second": 0.047879339037501724
+    },
+    {
+      "name": "voice-tilt-0.25-mix0",
+      "mode": "VOICE",
+      "mix": 0.0,
+      "tilt": -0.25,
+      "stoi": 0.36445735443464683,
+      "estoi": 0.22165920585760387,
+      "compute_seconds_per_audio_second": 0.028137639824996084
+    },
+    {
+      "name": "voice-tilt-0.25-mix0.05",
+      "mode": "VOICE",
+      "mix": 0.05,
+      "tilt": -0.25,
+      "stoi": 0.3646822392683441,
+      "estoi": 0.22249694145141863,
+      "compute_seconds_per_audio_second": 0.04978263827500769
+    },
+    {
+      "name": "voice-tilt-0.25-mix0.1",
+      "mode": "VOICE",
+      "mix": 0.1,
+      "tilt": -0.25,
+      "stoi": 0.36475929453938516,
+      "estoi": 0.22338723637383026,
+      "compute_seconds_per_audio_second": 0.048031503749990635
+    },
+    {
+      "name": "voice-tilt-0.25-mix0.25",
+      "mode": "VOICE",
+      "mix": 0.25,
+      "tilt": -0.25,
+      "stoi": 0.36460673696636253,
+      "estoi": 0.22540204077531303,
+      "compute_seconds_per_audio_second": 0.04987009981248889
+    },
+    {
+      "name": "voice-tilt-0.25-mix0.5",
+      "mode": "VOICE",
+      "mix": 0.5,
+      "tilt": -0.25,
+      "stoi": 0.364610501100648,
+      "estoi": 0.22827772795008558,
+      "compute_seconds_per_audio_second": 0.051132870412504874
+    },
+    {
+      "name": "voice-tilt0-mix0",
+      "mode": "VOICE",
+      "mix": 0.0,
+      "tilt": 0.0,
+      "stoi": 0.3723614257045178,
+      "estoi": 0.22911874080020977,
+      "compute_seconds_per_audio_second": 0.03029643445000261
+    },
+    {
+      "name": "voice-tilt0-mix0.05",
+      "mode": "VOICE",
+      "mix": 0.05,
+      "tilt": 0.0,
+      "stoi": 0.37262581555947716,
+      "estoi": 0.229646714268953,
+      "compute_seconds_per_audio_second": 0.04865588145000288
+    },
+    {
+      "name": "voice-tilt0-mix0.1",
+      "mode": "VOICE",
+      "mix": 0.1,
+      "tilt": 0.0,
+      "stoi": 0.3726344882923771,
+      "estoi": 0.23020399513972803,
+      "compute_seconds_per_audio_second": 0.047490055225006246
+    },
+    {
+      "name": "voice-tilt0-mix0.25",
+      "mode": "VOICE",
+      "mix": 0.25,
+      "tilt": 0.0,
+      "stoi": 0.37242609223143613,
+      "estoi": 0.23198038567528198,
+      "compute_seconds_per_audio_second": 0.0494946412750096
+    },
+    {
+      "name": "voice-tilt0-mix0.5",
+      "mode": "VOICE",
+      "mix": 0.5,
+      "tilt": 0.0,
+      "stoi": 0.3719722476312937,
+      "estoi": 0.23506330350066737,
+      "compute_seconds_per_audio_second": 0.04934850741249193
+    },
+    {
+      "name": "voice-tilt0.25-mix0",
+      "mode": "VOICE",
+      "mix": 0.0,
+      "tilt": 0.25,
+      "stoi": 0.4074863133980642,
+      "estoi": 0.2614919594204391,
+      "compute_seconds_per_audio_second": 0.02856867501249667
+    },
+    {
+      "name": "voice-tilt0.25-mix0.05",
+      "mode": "VOICE",
+      "mix": 0.05,
+      "tilt": 0.25,
+      "stoi": 0.40428797413214307,
+      "estoi": 0.2585438565324037,
+      "compute_seconds_per_audio_second": 0.04865048336249629
+    },
+    {
+      "name": "voice-tilt0.25-mix0.1",
+      "mode": "VOICE",
+      "mix": 0.1,
+      "tilt": 0.25,
+      "stoi": 0.40107084505425494,
+      "estoi": 0.25599777734391516,
+      "compute_seconds_per_audio_second": 0.049033709862510474
+    },
+    {
+      "name": "voice-tilt0.25-mix0.25",
+      "mode": "VOICE",
+      "mix": 0.25,
+      "tilt": 0.25,
+      "stoi": 0.3934271958415144,
+      "estoi": 0.2510991096445462,
+      "compute_seconds_per_audio_second": 0.052271160250001
+    },
+    {
+      "name": "voice-tilt0.25-mix0.5",
+      "mode": "VOICE",
+      "mix": 0.5,
+      "tilt": 0.25,
+      "stoi": 0.38502550672865504,
+      "estoi": 0.24734858109585423,
+      "compute_seconds_per_audio_second": 0.04908934161250613
+    }
+  ],
+  "selected_overall": "voice-tilt-0.25-mix0",
+  "selected_speech_like": "voice-tilt-0.25-mix0.05",
+  "test": [
+    {
+      "name": "continuous-v1.3",
+      "mode": "CONTINUOUS",
+      "mix": null,
+      "tilt": null,
+      "stoi": 0.35959443491493737,
+      "estoi": 0.21889720422095385,
+      "compute_seconds_per_audio_second": 0.027575587874997608,
+      "lufs_matched": {
+        "stoi": 0.37416929372132757,
+        "estoi": 0.23162491560222753
+      }
+    },
+    {
+      "name": "oscillating-v1.3",
+      "mode": "OSCILLATING",
+      "mix": null,
+      "tilt": null,
+      "stoi": 0.35891654415136415,
+      "estoi": 0.22296001987515504,
+      "compute_seconds_per_audio_second": 0.03471863998749995,
+      "lufs_matched": {
+        "stoi": 0.3735908271066579,
+        "estoi": 0.23575898479772037
+      }
+    },
+    {
+      "name": "voice-tilt-0.25-mix0",
+      "mode": "VOICE",
+      "mix": 0.0,
+      "tilt": -0.25,
+      "stoi": 0.3514964084433727,
+      "estoi": 0.20997783385771795,
+      "compute_seconds_per_audio_second": 0.028137639824996084,
+      "lufs_matched": {
+        "stoi": 0.34730343784031653,
+        "estoi": 0.20640303230205392
+      }
+    },
+    {
+      "name": "voice-tilt-0.25-mix0.05",
+      "mode": "VOICE",
+      "mix": 0.05,
+      "tilt": -0.25,
+      "stoi": 0.35100941681369907,
+      "estoi": 0.21049741606608202,
+      "compute_seconds_per_audio_second": 0.04978263827500769,
+      "lufs_matched": {
+        "stoi": 0.34770018339297093,
+        "estoi": 0.20766811332544863
+      }
+    }
+  ],
+  "limitations": [
+    "One recording, not a separate speaker/session test.",
+    "Objective intelligibility proxies, not human word scores.",
+    "No model of room acoustics, binaural listening, hardware limits, or linguistic/informational masking."
+  ],
+  "references": [
+    "https://doi.org/10.1109/TASLP.2016.2585878",
+    "https://github.com/mpariente/pystoi",
+    "https://github.com/csteinmetz1/pyloudnorm"
+  ],
+  "trial_count": 1290,
+  "paired_differences": [
+    {
+      "candidate": "voice-tilt-0.25-mix0",
+      "baseline": "continuous-v1.3",
+      "normalization": "rms",
+      "mean_estoi_difference": -0.00891937036323583,
+      "seed_bootstrap_95_interval": [
+        -0.009294421606363179,
+        -0.008492170681065862
+      ]
+    },
+    {
+      "candidate": "voice-tilt-0.25-mix0",
+      "baseline": "continuous-v1.3",
+      "normalization": "lufs",
+      "mean_estoi_difference": -0.025221883300173564,
+      "seed_bootstrap_95_interval": [
+        -0.025659390600668224,
+        -0.024730034745124335
+      ]
+    },
+    {
+      "candidate": "voice-tilt-0.25-mix0",
+      "baseline": "oscillating-v1.3",
+      "normalization": "rms",
+      "mean_estoi_difference": -0.012982186017437067,
+      "seed_bootstrap_95_interval": [
+        -0.016139831633196253,
+        -0.009884081934685799
+      ]
+    },
+    {
+      "candidate": "voice-tilt-0.25-mix0",
+      "baseline": "oscillating-v1.3",
+      "normalization": "lufs",
+      "mean_estoi_difference": -0.029355952495666377,
+      "seed_bootstrap_95_interval": [
+        -0.03241135140102653,
+        -0.026386160637262415
+      ]
+    },
+    {
+      "candidate": "voice-tilt-0.25-mix0.05",
+      "baseline": "continuous-v1.3",
+      "normalization": "rms",
+      "mean_estoi_difference": -0.008399788154871808,
+      "seed_bootstrap_95_interval": [
+        -0.00988740096238004,
+        -0.00682044603478375
+      ]
+    },
+    {
+      "candidate": "voice-tilt-0.25-mix0.05",
+      "baseline": "continuous-v1.3",
+      "normalization": "lufs",
+      "mean_estoi_difference": -0.023956802276778925,
+      "seed_bootstrap_95_interval": [
+        -0.02538654105730062,
+        -0.022419171400975692
+      ]
+    },
+    {
+      "candidate": "voice-tilt-0.25-mix0.05",
+      "baseline": "oscillating-v1.3",
+      "normalization": "rms",
+      "mean_estoi_difference": -0.012462603809073044,
+      "seed_bootstrap_95_interval": [
+        -0.016117654226692507,
+        -0.008812251143166985
+      ]
+    },
+    {
+      "candidate": "voice-tilt-0.25-mix0.05",
+      "baseline": "oscillating-v1.3",
+      "normalization": "lufs",
+      "mean_estoi_difference": -0.02809087147227174,
+      "seed_bootstrap_95_interval": [
+        -0.031674563280683854,
+        -0.024573378144198278
+      ]
+    }
+  ],
+  "final_core_reference_checks": [
+    {
+      "candidate": "voice-tilt-0.25-mix0",
+      "seed": 101,
+      "masker_db": 3,
+      "normalization": "rms",
+      "maximum_error": 0.0,
+      "stoi": 0.3505678396086737,
+      "estoi": 0.21538270093180872
+    },
+    {
+      "candidate": "voice-tilt-0.25-mix0.05",
+      "seed": 101,
+      "masker_db": 3,
+      "normalization": "rms",
+      "maximum_error": 0.0,
+      "stoi": 0.3474958473147396,
+      "estoi": 0.2098713594315136
+    }
+  ],
+  "renderer": "Production Java audio core via tools/RenderMasker.java",
+  "date": "2026-10-27"
+}

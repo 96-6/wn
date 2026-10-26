@@ -116,6 +116,10 @@ def main():
         from build_adjusted_profile import build
         profile,*_=build(args.input)
     output,stats=train(profile,args.epochs,args.seed,args.device)
+    if args.input.suffix.lower()!='.json':
+        from voice_profile import enrich
+        output,voice_stats=enrich(output,args.input,seed=args.seed)
+        stats['voice_model']=voice_stats
     args.output.parent.mkdir(parents=True,exist_ok=True)
     args.output.write_text(json.dumps(output,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
     if args.report:

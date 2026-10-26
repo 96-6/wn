@@ -14,7 +14,7 @@ from profile_audio import ffmpeg_path, validate_profile, _float_wave_header
 
 
 def decode(path, rate, duration, ffmpeg):
-    command = [ffmpeg, '-v', 'error', '-nostdin', '-i', str(path)]
+    command = [ffmpeg, '-v', 'error', '-nostdin', '-protocol_whitelist', 'file,pipe,crypto,data', '-i', str(path)]
     if duration:
         command += ['-t', str(duration)]
     command += ['-vn', '-map', '0:a:0', '-ar', str(rate), '-c:a', 'pcm_f32le', '-f', 'wav', 'pipe:1']

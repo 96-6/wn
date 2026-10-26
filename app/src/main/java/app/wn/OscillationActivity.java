@@ -32,6 +32,7 @@ public final class OscillationActivity extends Activity {
     private TextView status,balanceText;
     private Spinner monitor;
     private SeekBar balance;
+    private LinearLayout fine;
     private PreviewClip clip;
     private PreviewSession session;
     private AndroidProfiler.Control decoding;
@@ -50,11 +51,23 @@ public final class OscillationActivity extends Activity {
         settings=SettingsStore.get(this);id=getIntent().getStringExtra("generator");
         SettingsStore.Layer layer=settings.layer(id);
         if(layer==null){finish();return;}
-        LinearLayout body=Ui.screen(this,"Oscillating settings",true);
-        OscillationControls.add(this,Ui.card(this,body),settings,id,this::update);
+        LinearLayout body=Ui.screen(this,"Generator settings",true);
+        fine=Ui.card(this,body);renderFine();
         LinearLayout preview=Ui.card(this,body);
         preview.addView(Ui.text(this,"Jamming preview",18,Ui.INK,true));
         Ui.add(this,preview,Ui.text(this,"Compare a file with all enabled generators. The file plays once.",13,Ui.MUTED,false),8);
+        SettingsStore.SavedProfile profile=settings.findProfile(layer.profileId);
+        String[] types=profile!=null&&profile.preset.voice!=null?new String[]{"Continuous noise","Oscillating noise + tone","Voice masker"}:new String[]{"Continuous noise","Oscillating noise + tone"};
+        Spinner type=new Spinner(this);type.setContentDescription("Preview generator type");
+        type.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,types));
+        type.setSelection(Math.min(types.length-1,layer.texture.ordinal()));Ui.add(this,preview,type,8);
+        type.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener(){
+            @Override public void onItemSelected(android.widget.AdapterView<?> p,android.view.View v,int index,long row) {
+                SettingsStore.Layer current=settings.layer(id);app.wn.audio.MixerConfig.Texture texture=app.wn.audio.MixerConfig.Texture.values()[index];
+                if(current!=null&&current.texture!=texture)try{settings.texture(id,texture);update();renderFine();}catch(RuntimeException e){Ui.error(OscillationActivity.this,"Generator type",e.getMessage());}
+            }
+            @Override public void onNothingSelected(android.widget.AdapterView<?> p){}
+        });
         start=input(preview,"File start (seconds)",state==null?"0":state.getString("start","0"));
         duration=input(preview,"Duration (1–60 seconds)",state==null?"60":state.getString("duration","60"));
         choose=Ui.button(this,"Choose preview audio",false);choose.setOnClickListener(v->choose());Ui.add(this,preview,choose,12);
@@ -81,6 +94,12 @@ public final class OscillationActivity extends Activity {
         stop=Ui.button(this,"Stop preview",false);stop.setEnabled(false);stop.setOnClickListener(v->{stopPreview();status.setText(R.string.preview_stopped);});Ui.add(this,preview,stop,8);
         status=Ui.text(this,"Choose audio to preview",13,Ui.MUTED,false);Ui.add(this,preview,status,10);
         Ui.add(this,preview,Ui.text(this,"Balance sets the starting RMS ratio. Fine controls then change the masking; Rebalance sets a new reference. Room acoustics affect the result.",12,Ui.MUTED,false),10);
+    }
+    private void renderFine() {
+        SettingsStore.Layer current=settings.layer(id);fine.removeAllViews();
+        boolean continuous=current==null||current.texture==app.wn.audio.MixerConfig.Texture.CONTINUOUS;
+        fine.setVisibility(continuous?android.view.View.GONE:android.view.View.VISIBLE);
+        if(!continuous)OscillationControls.add(this,fine,settings,id,this::update);
     }
     private EditText input(LinearLayout parent,String label,String value) {
         Ui.add(this,parent,Ui.text(this,label,13,Ui.INK,true),10);EditText e=new EditText(this);e.setTextColor(Ui.INK);e.setSingleLine();

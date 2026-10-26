@@ -115,7 +115,7 @@ public final class MainActivity extends Activity {
                 remove.setOnClickListener(v -> { settings.removeGenerator(layer.id); changed(); renderGenerators(); });
             }
             if (profile != null && profile.preset.motion != null) {
-                String[] types = {"Continuous noise", "Oscillating noise + tone"};
+                String[] types = profile.preset.voice==null?new String[]{"Continuous noise", "Oscillating noise + tone"}:new String[]{"Continuous noise", "Oscillating noise + tone","Voice masker"};
                 Button type = Ui.button(this, "Type: " + types[layer.texture.ordinal()], false);
                 Ui.add(this, card, type, 8);
                 type.setOnClickListener(v -> new AlertDialog.Builder(this).setTitle("Generator type")
@@ -125,7 +125,7 @@ public final class MainActivity extends Activity {
                                 changed(); dialog.dismiss(); renderGenerators();
                             } catch (RuntimeException e) { Ui.error(this, "Generator type", e.getMessage()); }
                         }).setNegativeButton("Cancel", null).show());
-                if(layer.texture==MixerConfig.Texture.OSCILLATING) {
+                if(layer.texture!=MixerConfig.Texture.CONTINUOUS) {
                     Button fine=Ui.button(this,"Fine controls & preview",false);Ui.add(this,card,fine,8);
                     fine.setOnClickListener(v->startActivity(new Intent(this,OscillationActivity.class).putExtra("generator",layer.id)));
                 }

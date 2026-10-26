@@ -1,17 +1,17 @@
-# WN 1.3
+# WN 1.4
 
 Offline Android noise mixer with saved spectral profiles, microphone/file profiling, and a desktop Python profiler. Android 8+ (API 26); target API 35. No account or network permission.
 
 ## Downloads
 
-- [Install WN 1.3.0 APK](https://github.com/96-6/wn/raw/refs/heads/main/apk/WN-1.3.0.apk)
+- [Install WN 1.4.0 APK](https://github.com/96-6/wn/raw/refs/heads/main/apk/WN-1.4.0.apk)
 - [Built-in Adjusted profile JSON](presets/adjusted.json)
 - [PC profiler](tools/profile_audio.py)
 - [JSON example](presets/adjusted-example.json)
 
-The installer is a signed development APK. **1.3 updates 1.1 and 1.2 in place**, preserving profiles, generator levels and stereo settings. For version 1.0, export its adjusted JSON first, uninstall the old app, then install 1.3 and import that JSON. The 1.0 signing key was unavailable, so it cannot update in place. Clearing/uninstalling an app removes its private data.
+The installer is a signed development APK. **1.4 updates 1.1–1.3 in place**, preserving profiles, generator levels and stereo settings. For version 1.0, export its adjusted JSON first, uninstall the old app, then install 1.4 and import that JSON. The 1.0 signing key was unavailable, so it cannot update in place. Clearing/uninstalling an app removes its private data.
 
-## Adjusted: two generator types
+## Adjusted generator types
 
 Adjusted is derived from the entire supplied 32.997-second recording. Its 23 adjoining gain regions cover **80–6,780 Hz**, containing **99.89%** of measured mean spectral energy, with a 150 Hz or 4% frequency margin. Quiet selected regions retain at least 22% linear gain. This deliberately covers more bandwidth than the ordinary sparse profiling modes.
 
@@ -19,6 +19,8 @@ The Adjusted card has **Type**:
 
 - **Continuous noise:** independently generated, steady noise shaped by the measured spectrum.
 - **Oscillating noise + tone:** the same shaped noise bed plus two slightly detuned harmonic banks. A 335-parameter stochastic neural network learns pitch/energy transitions from the 413 measured control points. At playback it draws fresh random control events and durations; it never walks through or wraps the recording's timeline. Each playback session uses a fresh seed. Older motion profiles without a trained network use conditional random resampling. No speech waveform is replayed.
+
+**Voice masker** is the third type in 1.4. It has a recommended Noise-first preset and an optional Speech-like blend with moving vocal-tract resonances, voiced harmonics and breathy consonant noise. See the comparison below.
 
 Adjusted is added as the second generator on first install or first upgrade to 1.2. Its type defaults to Continuous noise. To hear both types together, add another generator using Adjusted and set its Type to Oscillating noise + tone; levels remain independent. You can remove either extra generator and return to Default alone. A removed generator is not recreated on restart, and its saved profile remains available. If an existing scene already has eight generators, Adjusted is saved in Profiles without replacing a layer. A full 128-profile catalogue is left intact; free a profile slot and restart to install Adjusted.
 
@@ -33,6 +35,25 @@ python tools/build_adjusted_profile.py recording.flac -o adjusted.json --report 
 ~~~
 
 This companion uses the same NumPy/FFmpeg dependencies as the main profiler. It defaults to the first 120 seconds; `--duration 0` reads the whole file. Input channel powers are averaged without phase cancellation; pitch follows the strongest channel. Motion supports at most 2,048 control points (about 164 seconds at this tool's 80 ms step).
+
+## Voice masker: measured recommendation
+
+Select **Adjusted → Type → Voice masker → Fine controls & preview**.
+
+- **Noise-first** uses a gentle spectral rebalance selected for the supplied voice recording. It keeps continuous coverage and is the recommended default.
+- **Speech-like blend** adds independently generated pseudo-voices. Their changing vowel resonances and voiced/unvoiced sounds use a 24-state LPC envelope codebook, randomized transitions and the existing neural pitch/energy model. No phrase or source timeline loops.
+- **Voice level**, **Noise level**, **Voice oscillation speed**, **Variation**, **Pitch shift**, **Voice spread**, and **Voices (1–4)** are adjustable. Voice settings are saved separately from the older oscillating settings. Noise-first/Speech-like blend buttons change only the voice/noise balance; Reset voice settings restores all voice defaults.
+- The preview's **generator type selector** switches between all available types while keeping the same reference file/session running. Fine controls are hidden for Continuous noise. The source still plays once, and its level remains fixed after calibration until Rebalance is pressed.
+
+Noise-first defaults to voice level 0% and noise level 100%. The light Speech-like blend starts around voice level 34.4% and noise level 97.5%, using the same gain reference as the existing oscillator; all other controls remain at their neutral defaults and voice count is four. Raise voice level or lower noise level for a stronger vocal texture. A more voice-like sound is not automatically a stronger speech masker.
+
+In **1,290 scored mixtures**, the new Noise-first and light Speech-like variants had lower final-test STOI/ESTOI than either existing mode, with both full-band RMS matching and LUFS matching. Noise-first had the lowest primary validation/final-test ESTOI; the light blend was close. This is a comparison within one supplied recording, not a human intelligibility trial or proof of room-level cancellation.
+
+[Detailed protocol and results](docs/VOICE_MASKER_COMPARISON.md) · [summary JSON](docs/voice-comparison.json) · [all trial scores](docs/voice-comparison-trials.csv)
+
+Generated-only listening examples (ten seconds each, approximately −23 LUFS; no reference speech mixed in): [Noise-first](docs/audio/voice-noise-first.mp3), [Speech-like blend](docs/audio/voice-speech-like.mp3), [vocal component alone](docs/audio/voice-voices-only.mp3). Quantitative scores use uncompressed Java output, not these MP3s.
+
+The shipped Adjusted profile contains the trained voice model. PC/Colab training from an audio file now creates one too. On-device sparse profiling still produces ordinary spectral-noise profiles; import a voice-trained JSON to obtain this type for another recording. The supplied defaults were selected for the supplied recording; other recordings may need their own comparison.
 
 ## Oscillating controls and preview
 
@@ -55,7 +76,7 @@ The balance slider spans −12 to +24 dB, default **+6 dB**, roughly **2× maske
 
 ## Train another profile locally or in Colab
 
-The supplied model was trained locally on CPU in about one second. It models random control movement, not speech synthesis or speaker identity. Android runs its small network in Java without a machine-learning runtime or network permission. Training loss measures fit to the provided controls and does not measure masking effectiveness.
+The pitch/energy network was trained locally on CPU in about one second. Audio inputs also fit a compact LPC vocal-envelope codebook and transition model. It models random control movement, not speech synthesis or speaker identity. Android runs its small network in Java without a machine-learning runtime or network permission. Training loss measures fit to the provided controls and does not measure masking effectiveness.
 
 ~~~sh
 python tools/train_motion_model.py voice.flac -o adjusted-trained.json --device cpu --epochs 1800
@@ -63,7 +84,7 @@ python tools/train_motion_model.py voice.flac -o adjusted-trained.json --device 
 python tools/train_motion_model.py existing.json -o trained.json --device auto --epochs 3000
 ~~~
 
-NumPy training uses the existing profiler requirements. `--device auto` uses PyTorch/CUDA when available, otherwise NumPy/CPU. `--device cuda` requires a CUDA-capable PyTorch installation. Output files are protected unless `--force` is given. Import the result in Profiles, add a generator and choose Oscillating noise + tone.
+NumPy training uses the existing profiler requirements. `--device auto` uses PyTorch/CUDA when available, otherwise NumPy/CPU. `--device cuda` requires a CUDA-capable PyTorch installation. Vocal-envelope fitting uses NumPy on CPU and needs no GPU. Output files are protected unless `--force` is given. Import the result in Profiles, add a generator and choose Voice masker (WN 1.4+) or Oscillating noise + tone. Audio inputs train the vocal envelopes; an existing JSON retains its voice model when present.
 
 [Open training notebook in Colab](https://colab.research.google.com/github/96-6/wn/blob/main/tools/Train_WN_Motion.ipynb) · [copyable Colab command block](tools/COLAB.md) · [local training report](docs/motion-training.json). In Colab select Runtime → Change runtime type → T4 GPU to use CUDA. The notebook uses your chosen file in your own Colab runtime.
 
@@ -125,7 +146,7 @@ File support follows the **actual FFmpeg build's** demuxers/decoders, including 
 
 ## Portable profile JSON
 
-The spectral schema remains compatible with version 1.0. Version 1.3 also preserves optional `motion: {stepMs, pitchHz: [...], energy: [...]}`: 2–2,048 matching control points, 20–1,000 ms per point, pitch 60–1,000 Hz and energy 0–1. Earlier versions can read its spectral bands but do not offer oscillating playback.
+The spectral schema remains compatible with version 1.0. Version 1.4 also preserves optional `motion: {stepMs, pitchHz: [...], energy: [...]}`: 2–2,048 matching control points, 20–1,000 ms per point, pitch 60–1,000 Hz and energy 0–1. Versions before 1.2 can read its spectral bands but do not offer oscillating playback.
 
 ~~~json
 {
@@ -140,6 +161,8 @@ The spectral schema remains compatible with version 1.0. Version 1.3 also preser
 ~~~
 
 Use 1–64 sorted non-overlapping bands within 20–22000 Hz, each at least 20 Hz wide. Each band uses level (linear amplitude, 0–1) or gainDb (-60–0), not both. Names have 1–80 readable characters; UTF-8 files may have a BOM. File size limit: 256 KiB. At least one level must be nonzero.
+
+Voice-trained profiles can additionally carry a `voice` object (version 1): 24 increasing `centersHz`, 4–32 spectral `states` with pitch/energy/voicing and 24 positive gains, a matching transition matrix and stationary weights, plus `mix`, `speechMix`, and `tilt` defaults. Matrices, finite values and bounds are validated before playback. Voice data requires motion data. Older apps may discard the extra voice metadata when re-exporting.
 
 A ten-band profile can use levels instead of bands, at 31.5, 63, 125, 250, 500, 1000, 2000, 4000, 8000 and 16000 Hz:
 

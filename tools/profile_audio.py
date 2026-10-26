@@ -104,9 +104,9 @@ def validate_profile(value):
             clean={'type':'mdn1'}
             for key,low,high in [('pitchMean',math.log(60),math.log(1000)),('pitchScale',.005,2),
                                  ('energyMean',0,1),('energyScale',.005,2)]:
-                value=number(model.get(key))
-                if not low<=value<=high:raise ProfileError('Invalid model normalization: '+key)
-                clean[key]=value
+                normalized=number(model.get(key))
+                if not low<=normalized<=high:raise ProfileError('Invalid model normalization: '+key)
+                clean[key]=normalized
             for key,count in [('w1',64),('b1',16),('w2',240),('b2',15)]:
                 values=model.get(key)
                 if not isinstance(values,list) or len(values)!=count:raise ProfileError('Invalid model matrix: '+key)
@@ -114,6 +114,40 @@ def validate_profile(value):
                 if max(abs(v) for v in values)>100:raise ProfileError('Model weights are too large.')
                 clean[key]=values
             out['motion']['model']=clean
+    if 'voice' in value:
+        voice=value['voice']
+        if not isinstance(voice,dict) or type(voice.get('version')) not in (int,float) or voice.get('version')!=1 or 'motion' not in out:
+            raise ProfileError('Voice model requires version 1 and motion data.')
+        centers=voice.get('centersHz');states=voice.get('states')
+        if not isinstance(centers,list) or len(centers)!=24 or not isinstance(states,list) or not 4<=len(states)<=32:
+            raise ProfileError('Voice model needs 24 frequency centers and 4–32 states.')
+        centers=[number(v) for v in centers]
+        if centers[0]<60 or centers[-1]>22000 or any(b<=a for a,b in zip(centers,centers[1:])):
+            raise ProfileError('Invalid voice frequency centers.')
+        clean_states=[]
+        for state in states:
+            if not isinstance(state,dict):raise ProfileError('Invalid voice state.')
+            pitch,energy,voicing=(number(state.get(k)) for k in ['pitchHz','energy','voicing'])
+            gains=state.get('gains')
+            if not 60<=pitch<=1000 or not 0<=energy<=1 or not 0<=voicing<=1 or not isinstance(gains,list) or len(gains)!=24:
+                raise ProfileError('Invalid voice state controls.')
+            gains=[number(v) for v in gains]
+            if min(gains)<.05 or max(gains)>5:raise ProfileError('Invalid voice spectral envelope.')
+            clean_states.append({'pitchHz':pitch,'energy':energy,'voicing':voicing,'gains':gains})
+        k=len(states);weights=voice.get('weights');transitions=voice.get('transitions')
+        if not isinstance(weights,list) or len(weights)!=k or not isinstance(transitions,list) or len(transitions)!=k:
+            raise ProfileError('Invalid voice transition dimensions.')
+        weights=[number(v) for v in weights]
+        if min(weights)<0 or max(weights)>100000 or sum(weights)<=0:raise ProfileError('Invalid voice weights.')
+        matrix=[]
+        for row in transitions:
+            if not isinstance(row,list) or len(row)!=k:raise ProfileError('Invalid voice transition row.')
+            row=[number(v) for v in row]
+            if min(row)<0 or max(row)>100000:raise ProfileError('Invalid voice transitions.')
+            matrix.append(row)
+        mix,tilt,speech_mix=number(voice.get('mix',0)),number(voice.get('tilt',-.25)),number(voice.get('speechMix',.05))
+        if not 0<=mix<=1 or not 0<=speech_mix<=1 or not -2<=tilt<=2:raise ProfileError('Invalid voice defaults.')
+        out['voice']={'version':1,'centersHz':centers,'states':clean_states,'transitions':matrix,'weights':weights,'mix':mix,'speechMix':speech_mix,'tilt':tilt}
     return out
 
 class Profiler:

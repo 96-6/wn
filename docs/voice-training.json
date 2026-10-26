@@ -1,0 +1,8 @@
+{
+  "states": 24,
+  "spectral_bands": 24,
+  "lpc_order": 16,
+  "frames": 413,
+  "mean_voicing": 0.6051633761627035,
+  "method": "LPC spectral-envelope codebook and non-cyclic transition statistics"
+}

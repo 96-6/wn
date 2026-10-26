@@ -31,7 +31,7 @@ public final class NoiseMixer {
                 }
                 v.retained = true; v.target = g.enabled ? g.level : 0;
                 v.texture = g.texture;
-                v.controls=g.oscillation;
+                v.controls=g.oscillation;v.voiceControls=g.voiceControls;
                 if (v.preset != g.preset) {
                     v.preset = g.preset; v.mid.setProfile(g.preset); v.side.setProfile(g.preset);
                 }
@@ -43,19 +43,25 @@ public final class NoiseMixer {
         boolean retired = false;
         for (Voice v : renderVoices) {
             if (v.target > 0 || v.gain > .00001) {
-                v.mid.render(v.m); v.side.render(v.s);
+                if(v.speechMix<.99999||v.texture!=MixerConfig.Texture.VOICE){v.mid.render(v.m);v.side.render(v.s);}
+                else{Arrays.fill(v.m,0);Arrays.fill(v.s,0);}
                 double textureTarget = v.texture == MixerConfig.Texture.OSCILLATING ? 1 : 0;
+                double speechTarget=v.texture==MixerConfig.Texture.VOICE?1:0;
+                boolean speech=v.preset.voice!=null&&(speechTarget>0||v.speechMix>.00001);
+                if(speech){if(v.speech==null)v.speech=new VoiceMasker(v.seed);v.speech.render(v.preset,v.vm,v.vs,v.voiceControls);}
                 boolean motion = v.preset.motion != null && (textureTarget > 0 || v.oscillation > .00001);
                 if (motion) v.oscillator.render(v.preset, v.tm, v.ts, v.pulse,v.controls);
                 for (int i = 0; i < FRAMES; i++) {
                     v.gain += (v.target - v.gain) * SMOOTHING;
                     v.oscillation += (textureTarget - v.oscillation) * SMOOTHING;
+                    v.speechMix+=(speechTarget-v.speechMix)*SMOOTHING;
                     v.noiseLevel+=(v.controls.noise-v.noiseLevel)*SMOOTHING;
                     v.toneLevel+=(v.controls.tone-v.toneLevel)*SMOOTHING;
                     double mix = motion ? v.oscillation : 0;
                     double noise = 1 + mix * (v.pulse[i]*v.noiseLevel - 1);
-                    mids[i] += (v.m[i] * noise + v.tm[i] * mix * .65*v.toneLevel) * v.gain;
-                    sides[i] += (v.s[i] * noise + v.ts[i] * mix * .65*v.toneLevel) * v.gain;
+                    double voice=speech?v.speechMix:0;
+                    mids[i] += ((v.m[i] * noise + v.tm[i] * mix * .65*v.toneLevel)*(1-voice)+v.vm[i]*voice) * v.gain;
+                    sides[i] += ((v.s[i] * noise + v.ts[i] * mix * .65*v.toneLevel)*(1-voice)+v.vs[i]*voice) * v.gain;
                 }
             } else {
                 v.gain = 0; v.mid.clear(); v.side.clear();
@@ -91,20 +97,25 @@ public final class NoiseMixer {
     private static final class Voice {
         final Source mid, side;
         final MotionOscillator oscillator;
+        VoiceMasker speech;
+        final long seed;
         final double[] m = new double[FRAMES], s = new double[FRAMES];
         final double[] tm = new double[FRAMES], ts = new double[FRAMES], pulse = new double[FRAMES];
+        final double[] vm=new double[FRAMES],vs=new double[FRAMES];
         NoisePreset preset;
         MixerConfig.Texture texture = MixerConfig.Texture.CONTINUOUS;
         Oscillation controls=Oscillation.DEFAULT;
-        double target, gain, oscillation,noiseLevel=1,toneLevel=1;
+        Oscillation voiceControls=Oscillation.DEFAULT;
+        double target, gain, oscillation,speechMix,noiseLevel=1,toneLevel=1;
         boolean retained;
         Voice(long seed) {
+            this.seed=seed;
             mid = new Source(seed ^ 0x12345678L); side = new Source(seed ^ 0x76a2b345L);
             oscillator = new MotionOscillator(seed);
         }
     }
 
-    private static final class Source {
+    static final class Source {
         final double[] re = new double[FFT_SIZE], im = new double[FFT_SIZE];
         final double[] tail = new double[FRAMES], spectrum = new double[FFT_SIZE / 2];
         final double[] window = new double[FFT_SIZE];
@@ -117,6 +128,7 @@ public final class NoiseMixer {
             for (int i = 0; i < spectrum.length; i++)
                 spectrum[i] = p == null ? 0 : p.gainAt(i * (double) SAMPLE_RATE / FFT_SIZE) * Math.sqrt(FFT_SIZE / 2.0);
         }
+        void setGains(double[] gains){for(int i=0;i<spectrum.length;i++)spectrum[i]=gains[i]*Math.sqrt(FFT_SIZE/2.0);}
         double noise() {
             random ^= random >>> 12; random ^= random << 25; random ^= random >>> 27;
             long value = random * 2685821657736338717L;

@@ -40,5 +40,11 @@
     "tests": 4,
     "failures": 0,
     "errors": 0
+  },
+  {
+    "suite": "app.wn.audio.VoiceMaskerTest",
+    "tests": 8,
+    "failures": 0,
+    "errors": 0
   }
 ]

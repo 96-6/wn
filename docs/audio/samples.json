@@ -1,0 +1,20 @@
+[
+  {
+    "file": "voice-noise-first.mp3",
+    "seconds": 10,
+    "generated_only": true,
+    "lufs_before_mp3": -22.999999942026093
+  },
+  {
+    "file": "voice-speech-like.mp3",
+    "seconds": 10,
+    "generated_only": true,
+    "lufs_before_mp3": -23.000000037821895
+  },
+  {
+    "file": "voice-voices-only.mp3",
+    "seconds": 10,
+    "generated_only": true,
+    "lufs_before_mp3": -23.000000067979837
+  }
+]
