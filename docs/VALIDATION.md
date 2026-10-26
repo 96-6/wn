@@ -6,7 +6,7 @@ Package app.wn, version code 2, minimum API 26, target/compile API 35. Signed de
 - JVM tests: **25 passed**, zero failures/errors. See unit-test-summary.json.
 - Android lint: **No issues found**.
 - PC tests: **14 passed**, including generated fixtures in ten codec/container variants, extensionless/Unicode filenames, raw PCM, audio inside video, JSON round trips, output protection, sparse profiling and opposite-phase stereo.
-- Android instrumentation APK: compiled. Eight device tests cover saved profiles/generators, return to Default alone, background playback, media-controller/notification Stop, private JSON persistence, cancellation and WAV/MP3/FLAC/AAC file profiling. The GitHub Actions device job runs these on API 35.
+- Android instrumentation: **8 passed** on the Android 15 / API 35 emulator in [GitHub Actions](https://github.com/96-6/wn/actions/runs/40248359359). These cover saved profiles/generators, return to Default alone, background playback, media-controller/notification Stop, private JSON persistence, cancellation and WAV/MP3/FLAC/AAC file profiling.
 - Installer signature verified with apksigner.
 
 APK SHA-256: c65f289de500f30b107506c5d80908e5a449d32e27003c2876b05c92c385fc7d
