@@ -1,0 +1,23 @@
+{
+  "method": "100 Hz mean/p95 power, -36 dB threshold, 150 Hz or 4% kerf, compressed gains",
+  "source_sha256": "e1f219c0455339b5aae01b52274a14f219f5c48147bb40e01672554498124ec0",
+  "seconds_analyzed": 32.99679166666667,
+  "sample_rate": 48000,
+  "channels": 1,
+  "active_frames": 1357,
+  "bands": 23,
+  "range_hz": [
+    80.0,
+    6780.0
+  ],
+  "occupied_bandwidth_hz": 6700.0,
+  "mean_spectral_energy_coverage": 0.9989195801508752,
+  "gain_floor": 0.22,
+  "motion_points": 413,
+  "voiced_fraction": 0.6997578692493946,
+  "pitch_hz_percentiles_10_50_90": [
+    234.8,
+    307.5,
+    398.1
+  ]
+}

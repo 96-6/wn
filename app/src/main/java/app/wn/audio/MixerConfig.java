@@ -8,6 +8,7 @@ import java.util.List;
 /** Immutable mix of independently seeded noise generators. */
 public final class MixerConfig {
     public static final int MAX_GENERATORS = 8;
+    public enum Texture { CONTINUOUS, OSCILLATING }
     public enum Width {
         MONO(0), NARROW(.4), DEFAULT(1), WIDE(1.5);
         public final double side;
@@ -18,9 +19,14 @@ public final class MixerConfig {
         public final NoisePreset preset;
         public final boolean enabled;
         public final double level;
+        public final Texture texture;
         public Generator(String id, NoisePreset preset, boolean enabled, double level) {
+            this(id, preset, enabled, level, Texture.CONTINUOUS);
+        }
+        public Generator(String id, NoisePreset preset, boolean enabled, double level, Texture texture) {
             if (id == null || id.isEmpty() || preset == null) throw new IllegalArgumentException("A generator needs an ID and profile.");
             this.id = id; this.preset = preset; this.enabled = enabled; this.level = clamp(level);
+            this.texture = preset.motion == null || texture == null ? Texture.CONTINUOUS : texture;
         }
     }
     public final List<Generator> generators;

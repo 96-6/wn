@@ -30,6 +30,7 @@ public final class NoiseMixer {
                     voices.put(g.id, v);
                 }
                 v.retained = true; v.target = g.enabled ? g.level : 0;
+                v.texture = g.texture;
                 if (v.preset != g.preset) {
                     v.preset = g.preset; v.mid.setProfile(g.preset); v.side.setProfile(g.preset);
                 }
@@ -42,9 +43,16 @@ public final class NoiseMixer {
         for (Voice v : renderVoices) {
             if (v.target > 0 || v.gain > .00001) {
                 v.mid.render(v.m); v.side.render(v.s);
+                double textureTarget = v.texture == MixerConfig.Texture.OSCILLATING ? 1 : 0;
+                boolean motion = v.preset.motion != null && (textureTarget > 0 || v.oscillation > .00001);
+                if (motion) v.oscillator.render(v.preset, v.tm, v.ts, v.pulse);
                 for (int i = 0; i < FRAMES; i++) {
                     v.gain += (v.target - v.gain) * SMOOTHING;
-                    mids[i] += v.m[i] * v.gain; sides[i] += v.s[i] * v.gain;
+                    v.oscillation += (textureTarget - v.oscillation) * SMOOTHING;
+                    double mix = motion ? v.oscillation : 0;
+                    double noise = 1 + mix * (v.pulse[i] - 1);
+                    mids[i] += (v.m[i] * noise + v.tm[i] * mix * .65) * v.gain;
+                    sides[i] += (v.s[i] * noise + v.ts[i] * mix * .65) * v.gain;
                 }
             } else {
                 v.gain = 0; v.mid.clear(); v.side.clear();
@@ -79,11 +87,17 @@ public final class NoiseMixer {
 
     private static final class Voice {
         final Source mid, side;
+        final MotionOscillator oscillator;
         final double[] m = new double[FRAMES], s = new double[FRAMES];
+        final double[] tm = new double[FRAMES], ts = new double[FRAMES], pulse = new double[FRAMES];
         NoisePreset preset;
-        double target, gain;
+        MixerConfig.Texture texture = MixerConfig.Texture.CONTINUOUS;
+        double target, gain, oscillation;
         boolean retained;
-        Voice(long seed) { mid = new Source(seed ^ 0x12345678L); side = new Source(seed ^ 0x76a2b345L); }
+        Voice(long seed) {
+            mid = new Source(seed ^ 0x12345678L); side = new Source(seed ^ 0x76a2b345L);
+            oscillator = new MotionOscillator(seed);
+        }
     }
 
     private static final class Source {

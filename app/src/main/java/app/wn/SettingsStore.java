@@ -25,8 +25,13 @@ public final class SettingsStore {
         public final String id, profileId;
         public final boolean enabled;
         public final double level;
+        public final MixerConfig.Texture texture;
         Layer(String id, String profileId, boolean enabled, double level) {
+            this(id, profileId, enabled, level, MixerConfig.Texture.CONTINUOUS);
+        }
+        Layer(String id, String profileId, boolean enabled, double level, MixerConfig.Texture texture) {
             this.id = id; this.profileId = profileId; this.enabled = enabled; this.level = MixerConfig.clamp(level);
+            this.texture = texture;
         }
     }
     private static SettingsStore instance;
@@ -37,13 +42,15 @@ public final class SettingsStore {
     private volatile long revision;
     private double master;
     private MixerConfig.Width width;
+    private boolean adjustedInstalled;
 
     public static synchronized SettingsStore get(Context context) {
         if (instance == null) instance = new SettingsStore(context.getApplicationContext());
         return instance;
     }
-    private SettingsStore(Context context) {
+    SettingsStore(Context context) {
         prefs = context.getSharedPreferences("noise_settings", Context.MODE_PRIVATE);
+        adjustedInstalled = prefs.getBoolean("adjusted_sample_v1", false);
         master = prefs.getFloat("master", .25f);
         try { width = MixerConfig.Width.valueOf(prefs.getString("width", "DEFAULT")); }
         catch (IllegalArgumentException e) { width = MixerConfig.Width.DEFAULT; }
@@ -68,7 +75,8 @@ public final class SettingsStore {
                     JSONObject g = scene.getJSONObject(i);
                     String id = g.getString("id"), profile = g.optString("profileId", "");
                     if ("default".equals(id) || findProfile(profile) != null)
-                        layers.add(new Layer(id, "default".equals(id) ? null : profile, g.optBoolean("enabled", true), g.optDouble("level", .5)));
+                        layers.add(new Layer(id, "default".equals(id) ? null : profile, g.optBoolean("enabled", true), g.optDouble("level", .5),
+                                "OSCILLATING".equals(g.optString("texture")) ? MixerConfig.Texture.OSCILLATING : MixerConfig.Texture.CONTINUOUS));
                 }
             } catch (JSONException | IllegalArgumentException e) {
                 PlaybackStatus.error = "Some saved settings could not be read.";
@@ -79,7 +87,19 @@ public final class SettingsStore {
             layers.add(0, defaultLayer == null ? new Layer("default", null, true, .55) : defaultLayer);
             while (layers.size() > MixerConfig.MAX_GENERATORS) layers.remove(layers.size() - 1);
         }
+        installAdjusted(context);
         rebuild();
+    }
+    private void installAdjusted(Context context) {
+        if (adjustedInstalled || profiles.size() >= MAX_PROFILES) return;
+        try (java.io.InputStream input = context.getAssets().open("adjusted.json")) {
+            SavedProfile profile = new SavedProfile("builtin-adjusted-v1", ProfileFiles.read(input));
+            profiles.add(0, profile);
+            if (layers.size() < MixerConfig.MAX_GENERATORS)
+                layers.add(1, new Layer("adjusted", profile.id, true, .35));
+            adjustedInstalled = true;
+            persist(true);
+        } catch (java.io.IOException e) { throw new IllegalStateException("Could not load Adjusted.", e); }
     }
     public MixerConfig snapshot() { return current; }
     public long revision() { return revision; }
@@ -94,14 +114,14 @@ public final class SettingsStore {
         for (Layer l : layers) {
             SavedProfile p = l.profileId == null ? null : findProfile(l.profileId);
             if (l.profileId == null || p != null)
-                generators.add(new MixerConfig.Generator(l.id, p == null ? NoisePreset.DEFAULT : p.preset, l.enabled, l.level));
+                generators.add(new MixerConfig.Generator(l.id, p == null ? NoisePreset.DEFAULT : p.preset, l.enabled, l.level, l.texture));
         }
         current = new MixerConfig(generators, master, width);
         revision++;
     }
     private JSONObject layerJson(Layer l) throws JSONException {
         return new JSONObject().put("id", l.id).put("profileId", l.profileId == null ? "" : l.profileId)
-                .put("enabled", l.enabled).put("level", l.level);
+                .put("enabled", l.enabled).put("level", l.level).put("texture", l.texture.name());
     }
     @SuppressLint("ApplySharedPref")
     private void persist(boolean commit) {
@@ -110,6 +130,7 @@ public final class SettingsStore {
             if (commit) for (SavedProfile p : profiles) catalogue.put(new JSONObject().put("id", p.id).put("profile", new JSONObject(p.preset.toJson())));
             for (Layer l : layers) scene.put(layerJson(l));
             SharedPreferences.Editor edit = prefs.edit().putInt("schema", 2)
+                    .putBoolean("adjusted_sample_v1", adjustedInstalled)
                     .putString("generators", scene.toString()).putFloat("master", (float) master).putString("width", width.name());
             if (commit) {
                 edit.putString("catalogue", catalogue.toString());
@@ -178,8 +199,21 @@ public final class SettingsStore {
             String p = profileId == null ? l.profileId : profileId;
             if ("default".equals(id)) p = null;
             else if (findProfile(p) == null) throw new IllegalArgumentException("Profile no longer exists.");
-            layers.set(i, new Layer(id, p, enabled == null ? l.enabled : enabled, level == null ? l.level : level));
+            MixerConfig.Texture texture = p == null || findProfile(p).preset.motion == null ? MixerConfig.Texture.CONTINUOUS : l.texture;
+            layers.set(i, new Layer(id, p, enabled == null ? l.enabled : enabled, level == null ? l.level : level, texture));
             persist(false); rebuild(); return;
+        }
+    }
+    public synchronized void texture(String id, MixerConfig.Texture texture) {
+        for (int i = 0; i < layers.size(); i++) {
+            Layer old = layers.get(i);
+            if (!old.id.equals(id)) continue;
+            SavedProfile profile = findProfile(old.profileId);
+            if (profile == null || profile.preset.motion == null) throw new IllegalArgumentException("This profile has no motion data.");
+            if (texture == null) throw new IllegalArgumentException("Choose a generator type.");
+            layers.set(i, new Layer(id, old.profileId, old.enabled, old.level, texture));
+            try { persist(true); } catch (RuntimeException e) { layers.set(i, old); throw e; }
+            rebuild(); return;
         }
     }
     public synchronized void output(double level, MixerConfig.Width value) {

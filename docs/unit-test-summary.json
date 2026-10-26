@@ -6,6 +6,12 @@
     "errors": 0
   },
   {
+    "suite": "app.wn.audio.MotionProfileTest",
+    "tests": 5,
+    "failures": 0,
+    "errors": 0
+  },
+  {
     "suite": "app.wn.audio.MultipleGeneratorsTest",
     "tests": 5,
     "failures": 0,

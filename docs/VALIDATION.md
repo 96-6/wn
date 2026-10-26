@@ -1,16 +1,18 @@
-# WN 1.1.0 validation · 2026-10-26
+# WN 1.2.0 validation · 2026-10-26
 
-Package app.wn, version code 2, minimum API 26, target/compile API 35. Signed development APK.
+Package app.wn, version code 3, minimum API 26, target/compile API 35. Signed development APK.
 
-- Clean compilation and installable APK: passed.
-- JVM tests: **25 passed**, zero failures/errors. See unit-test-summary.json.
+- Android application and instrumentation APKs: compiled successfully.
+- JVM tests: **30 passed**, zero failures/errors. Includes motion JSON validation/round trips, joined spectral bands, oscillator spectral containment, both types mixed with eight generators and output peak limits.
 - Android lint: **No issues found**.
-- PC tests: **14 passed**, including generated fixtures in ten codec/container variants, extensionless/Unicode filenames, raw PCM, audio inside video, JSON round trips, output protection, sparse profiling and opposite-phase stereo.
-- Android instrumentation: **8 passed** on the Android 15 / API 35 emulator in [GitHub Actions](https://github.com/96-6/wn/actions/runs/40248359359). These cover saved profiles/generators, return to Default alone, background playback, media-controller/notification Stop, private JSON persistence, cancellation and WAV/MP3/FLAC/AAC file profiling.
-- Installer signature verified with apksigner.
+- PC tests: **18 passed**, including ten codec/container variants, phase-safe stereo, known pitch/cadence tracking, padded spectral selection and motion JSON preservation.
+- Android instrumentation suite: 12 tests. Four new tests cover first-install Adjusted, upgrade preservation, a full eight-generator scene, persistent type selection, removal back to Default and actual simultaneous continuous/oscillating background playback. The existing eight cover playback/media controls, saved profiles, JSON persistence, cancellation and file decoding. See [current CI results](https://github.com/96-6/wn/actions/workflows/android.yml).
+- APK signature verified with apksigner. Signing certificate matches 1.1.0, allowing an in-place update.
 
-APK SHA-256: c65f289de500f30b107506c5d80908e5a449d32e27003c2876b05c92c385fc7d
+APK SHA-256: 87a49a482d0c0f2b15e8ea16d361cb704209fc7a1755711a617bc80037fa7f22
 
-Hardware microphone capture and manufacturer battery management require checking on an actual phone. No claim of speaker identification or selective cancellation is made. Profiles describe static spectral ranges.
+The profile analyzes the complete supplied 32.997 seconds and contains 23 adjoining gain regions from 80 to 6,780 Hz, covering 99.89% of mean spectral energy. The motion template contains 413 pitch/energy points. See adjusted-analysis.json and adjusted-spectrum.png. The source audio and signing key are not published.
 
-The prior 1.0 signing key was not available in this environment. Export old JSON before uninstalling 1.0; then install 1.1 and import it. Current signing material is kept out of the public repository.
+Hardware microphone capture and manufacturer battery management still require checking on an actual phone. Measured spectral coverage does not measure real-room speech intelligibility or prove masking effectiveness. Profiles are static spectral shapes with optional procedural motion, not speaker identification or phase cancellation.
+
+1.2 updates 1.1 in place. Users coming directly from 1.0 must export their JSON before uninstalling 1.0 because its signing key is unavailable.

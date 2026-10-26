@@ -1,18 +1,42 @@
-# WN 1.1
+# WN 1.2
 
 Offline Android noise mixer with saved spectral profiles, microphone/file profiling, and a desktop Python profiler. Android 8+ (API 26); target API 35. No account or network permission.
 
 ## Downloads
 
-- [Install WN 1.1.0 APK](https://github.com/96-6/wn/raw/refs/heads/main/apk/WN-1.1.0.apk)
+- [Install WN 1.2.0 APK](https://github.com/96-6/wn/raw/refs/heads/main/apk/WN-1.2.0.apk)
+- [Built-in Adjusted profile JSON](presets/adjusted.json)
 - [PC profiler](tools/profile_audio.py)
 - [JSON example](presets/adjusted-example.json)
 
-The installer is a signed development APK. For version 1.0, export its adjusted JSON first, uninstall the old app, then install 1.1 and import that JSON. The previous temporary environment's signing key was unavailable, so 1.1 cannot replace 1.0 in place. Clearing/uninstalling an app removes its private data.
+The installer is a signed development APK. **1.2 updates 1.1 in place**, preserving profiles, generator levels and stereo settings. For version 1.0, export its adjusted JSON first, uninstall the old app, then install 1.2 and import that JSON. The 1.0 signing key was unavailable, so it cannot update in place. Clearing/uninstalling an app removes its private data.
+
+## Adjusted: two generator types
+
+Adjusted is derived from the entire supplied 32.997-second recording. Its 23 adjoining gain regions cover **80–6,780 Hz**, containing **99.89%** of measured mean spectral energy, with a 150 Hz or 4% frequency margin. Quiet selected regions retain at least 22% linear gain. This deliberately covers more bandwidth than the ordinary sparse profiling modes.
+
+The Adjusted card has **Type**:
+
+- **Continuous noise:** independently generated, steady noise shaped by the measured spectrum.
+- **Oscillating noise + tone:** the same shaped noise bed plus two slightly detuned procedural harmonic banks. Measured pitch and loudness contours vary the tone and noise rhythm; 413 control points at 80 ms intervals loop smoothly. Noise stays present during quieter portions. This contains no recording or speech waveform.
+
+Adjusted is added as the second generator on first install or first upgrade to 1.2. Its type defaults to Continuous noise. To hear both types together, add another generator using Adjusted and set its Type to Oscillating noise + tone; levels remain independent. You can remove either extra generator and return to Default alone. A removed generator is not recreated on restart, and its saved profile remains available. If an existing scene already has eight generators, Adjusted is saved in Profiles without replacing a layer. A full 128-profile catalogue is left intact; free a profile slot and restart to install Adjusted.
+
+The JSON includes both spectral bands and optional low-rate `motion` controls, so export/import retains both types. Existing version-1 JSON without `motion` remains compatible and uses continuous noise. Type choices belong to each generator and persist separately from the profile.
+
+See [measured analysis](docs/adjusted-analysis.json) and [spectrum/contours](docs/adjusted-spectrum.png). Only derived profile data is included; the source recording is not published. These are spectral maskers. Actual speech masking depends on playback level, speaker, room and listener position; neither type performs phase cancellation or identifies a particular person.
+
+To reproduce this reference analysis on a PC:
+
+~~~sh
+python tools/build_adjusted_profile.py recording.flac -o adjusted.json --report analysis.json
+~~~
+
+This companion uses the same NumPy/FFmpeg dependencies as the main profiler. It defaults to the first 120 seconds; `--duration 0` reads the whole file. Input channel powers are averaged without phase cancellation; pitch follows the strongest channel. Motion supports at most 2,048 control points (about 164 seconds at this tool's 80 ms step).
 
 ## Android
 
-**Mixer:** Default is always present. Add up to seven more generators (eight total), choose a saved profile for each, and set each generator's level and enabled state independently. Remove any additional generator to return to Default alone. Removing a generator never deletes its profile. Master controls the final mix; stereo width is Mono, Narrow, Default or Wide. Android chooses the media output route.
+**Mixer:** Default is always present. Adjusted starts alongside it. Add up to seven additional generators (eight total), choose a saved profile for each, and set each generator's level and enabled state independently. Remove any additional generator to return to Default alone. Removing a generator never deletes its profile. Master controls the final mix; stereo width is Mono, Narrow, Default or Wide. Android chooses the media output route.
 
 **Profiles:** Import JSON, create a profile from microphone/audio, rename, export, or delete unused profiles. Up to 128 profiles are stored privately on the device and committed to disk before the app reports success. Repeated imports create new saved profiles rather than overwriting existing ones.
 
@@ -68,7 +92,7 @@ File support follows the **actual FFmpeg build's** demuxers/decoders, including 
 
 ## Portable profile JSON
 
-The schema remains compatible with version 1.0:
+The spectral schema remains compatible with version 1.0. Version 1.2 also preserves optional `motion: {stepMs, pitchHz: [...], energy: [...]}`: 2–2,048 matching control points, 20–1,000 ms per point, pitch 60–1,000 Hz and energy 0–1. Earlier versions can read its spectral bands but do not offer oscillating playback.
 
 ~~~json
 {

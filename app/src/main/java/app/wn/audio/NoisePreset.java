@@ -23,11 +23,16 @@ public final class NoisePreset {
     public final String name;
     private final double[] levels;
     private final Band[] bands;
+    public final MotionShape motion;
 
     private NoisePreset(String name, double[] levels, Band[] bands) {
+        this(name, levels, bands, null);
+    }
+    private NoisePreset(String name, double[] levels, Band[] bands, MotionShape motion) {
         this.name = name;
         this.levels = levels == null ? null : levels.clone();
         this.bands = bands == null ? null : bands.clone();
+        this.motion = motion;
     }
 
     public static NoisePreset parse(String json) throws IllegalArgumentException {
@@ -37,6 +42,7 @@ public final class NoisePreset {
             Object root = tokener.nextValue();
             if (!(root instanceof JSONObject) || tokener.nextClean() != 0) fail("Use a single JSON object.");
             JSONObject o = (JSONObject) root;
+            MotionShape motion = o.has("motion") ? MotionShape.parse(o.getJSONObject("motion")) : null;
             if (number(o, "version") != 1) fail("Profile version must be 1.");
             Object rawName = o.opt("name");
             if (!(rawName instanceof String)) fail("A profile name is required.");
@@ -51,7 +57,7 @@ public final class NoisePreset {
                 double[] levels = new double[10];
                 for (int i = 0; i < 10; i++) levels[i] = unit(a.get(i), "levels[" + i + "]");
                 if (Arrays.stream(levels).allMatch(v -> v == 0)) fail("At least one level must be above zero.");
-                return new NoisePreset(name, levels, null);
+                return new NoisePreset(name, levels, null, motion);
             }
             JSONArray a = o.getJSONArray("bands");
             if (a.length() < 1 || a.length() > 64) fail("Use between 1 and 64 frequency bands.");
@@ -77,7 +83,7 @@ public final class NoisePreset {
                 previousHigh = high;
             }
             if (!audible) fail("At least one band must be above zero.");
-            return new NoisePreset(name, null, bands);
+            return new NoisePreset(name, null, bands, motion);
         } catch (JSONException | IndexOutOfBoundsException e) {
             throw new IllegalArgumentException("Invalid JSON profile: " + e.getMessage(), e);
         }
@@ -111,11 +117,15 @@ public final class NoisePreset {
             }
             return levels[9] * Math.max(0, (22000 - hz) / 6000);
         }
-        for (Band b : bands) {
+        for (int i = 0; i < bands.length; i++) {
+            Band b = bands[i];
             if (hz < b.lowHz) return 0;
             if (hz <= b.highHz) {
                 double edge = Math.min(25, (b.highHz - b.lowHz) * .1);
-                double t = Math.min(1, Math.min((hz - b.lowHz) / edge, (b.highHz - hz) / edge));
+                boolean joinsLeft = i > 0 && bands[i-1].highHz == b.lowHz && bands[i-1].level > 0;
+                boolean joinsRight = i+1 < bands.length && bands[i+1].lowHz == b.highHz && bands[i+1].level > 0;
+                double t = Math.min(1, Math.min(joinsLeft ? 1 : (hz - b.lowHz) / edge,
+                        joinsRight ? 1 : (b.highHz - hz) / edge));
                 return b.level * (.5 - .5 * Math.cos(Math.PI * t));
             }
         }
@@ -129,6 +139,7 @@ public final class NoisePreset {
     public String toJson() {
         try {
             JSONObject o = new JSONObject().put("version", 1).put("name", name);
+            if (motion != null) o.put("motion", motion.toJson());
             JSONArray a = new JSONArray();
             if (levels != null) {
                 for (double level : levels) a.put(level);

@@ -85,6 +85,18 @@ def validate_profile(value):
         if not any(b["level"] > 0 for b in converted):
             raise ProfileError("At least one band must be above zero.")
         out["bands"] = converted
+    if 'motion' in value:
+        motion = value['motion']
+        if not isinstance(motion, dict):
+            raise ProfileError('Motion must be an object.')
+        step = number(motion.get('stepMs'))
+        pitch, energy = motion.get('pitchHz'), motion.get('energy')
+        if not 20 <= step <= 1000 or not isinstance(pitch, list) or not isinstance(energy, list) or not 2 <= len(pitch) <= 2048 or len(pitch) != len(energy):
+            raise ProfileError('Motion needs 2–2048 matching points and a 20–1000 ms step.')
+        pitch, energy = [number(v) for v in pitch], [number(v) for v in energy]
+        if min(pitch) < 60 or max(pitch) > 1000 or min(energy) < 0 or max(energy) > 1:
+            raise ProfileError('Motion pitch must be 60–1000 Hz and energy 0–1.')
+        out['motion'] = {'stepMs': step, 'pitchHz': pitch, 'energy': energy}
     return out
 
 class Profiler:

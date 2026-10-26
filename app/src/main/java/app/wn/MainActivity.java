@@ -114,6 +114,18 @@ public final class MainActivity extends Activity {
                 choose.setOnClickListener(v -> chooseProfile(id -> { settings.updateGenerator(layer.id, null, null, id); changed(); renderGenerators(); }));
                 remove.setOnClickListener(v -> { settings.removeGenerator(layer.id); changed(); renderGenerators(); });
             }
+            if (profile != null && profile.preset.motion != null) {
+                String[] types = {"Continuous noise", "Oscillating noise + tone"};
+                Button type = Ui.button(this, "Type: " + types[layer.texture.ordinal()], false);
+                Ui.add(this, card, type, 8);
+                type.setOnClickListener(v -> new AlertDialog.Builder(this).setTitle("Generator type")
+                        .setSingleChoiceItems(types, layer.texture.ordinal(), (dialog, which) -> {
+                            try {
+                                settings.texture(layer.id, MixerConfig.Texture.values()[which]);
+                                changed(); dialog.dismiss(); renderGenerators();
+                            } catch (RuntimeException e) { Ui.error(this, "Generator type", e.getMessage()); }
+                        }).setNegativeButton("Cancel", null).show());
+            }
             LinearLayout label = Ui.row(this);
             label.addView(Ui.text(this, "Level", 13, Ui.INK, false), new LinearLayout.LayoutParams(0, -2, 1));
             TextView value = Ui.text(this, getString(R.string.level_percent, (int) Math.round(layer.level * 100)), 13, Ui.ACCENT, true);
@@ -131,7 +143,7 @@ public final class MainActivity extends Activity {
         StringBuilder key = new StringBuilder();
         for (SettingsStore.Layer l : settings.layers()) {
             SettingsStore.SavedProfile p = l.profileId == null ? null : settings.findProfile(l.profileId);
-            key.append(l.id).append(':').append(l.profileId).append(':').append(p == null ? "" : p.preset.name).append('|');
+            key.append(l.id).append(':').append(l.profileId).append(':').append(p == null ? "" : p.preset.name).append(':').append(l.texture).append('|');
         }
         return key.toString();
     }
