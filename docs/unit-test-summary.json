@@ -1,0 +1,32 @@
+[
+  {
+    "suite": "app.wn.ProfileFilesTest",
+    "tests": 3,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "suite": "app.wn.audio.MultipleGeneratorsTest",
+    "tests": 5,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "suite": "app.wn.audio.NoiseMixerTest",
+    "tests": 7,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "suite": "app.wn.audio.NoisePresetTest",
+    "tests": 6,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "suite": "app.wn.audio.SpectrumProfilerTest",
+    "tests": 4,
+    "failures": 0,
+    "errors": 0
+  }
+]

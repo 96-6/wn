@@ -1,0 +1,192 @@
+package app.wn;
+
+import android.annotation.SuppressLint;
+import android.content.Context;
+import android.content.SharedPreferences;
+import app.wn.audio.MixerConfig;
+import app.wn.audio.NoisePreset;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
+
+/** Durable profile catalogue and mixer scene. Profile changes are committed before success is reported. */
+public final class SettingsStore {
+    public static final int MAX_PROFILES = 128;
+    public static final class SavedProfile {
+        public final String id;
+        public final NoisePreset preset;
+        SavedProfile(String id, NoisePreset preset) { this.id = id; this.preset = preset; }
+    }
+    public static final class Layer {
+        public final String id, profileId;
+        public final boolean enabled;
+        public final double level;
+        Layer(String id, String profileId, boolean enabled, double level) {
+            this.id = id; this.profileId = profileId; this.enabled = enabled; this.level = MixerConfig.clamp(level);
+        }
+    }
+    private static SettingsStore instance;
+    private final SharedPreferences prefs;
+    private List<SavedProfile> profiles = new ArrayList<>();
+    private List<Layer> layers = new ArrayList<>();
+    private volatile MixerConfig current;
+    private volatile long revision;
+    private double master;
+    private MixerConfig.Width width;
+
+    public static synchronized SettingsStore get(Context context) {
+        if (instance == null) instance = new SettingsStore(context.getApplicationContext());
+        return instance;
+    }
+    private SettingsStore(Context context) {
+        prefs = context.getSharedPreferences("noise_settings", Context.MODE_PRIVATE);
+        master = prefs.getFloat("master", .25f);
+        try { width = MixerConfig.Width.valueOf(prefs.getString("width", "DEFAULT")); }
+        catch (IllegalArgumentException e) { width = MixerConfig.Width.DEFAULT; }
+        if (prefs.getInt("schema", 1) < 2) {
+            layers.add(new Layer("default", null, prefs.getBoolean("default_enabled", true), prefs.getFloat("default_level", .55f)));
+            String old = prefs.getString("profile", null);
+            if (old != null) try {
+                SavedProfile p = new SavedProfile(UUID.randomUUID().toString(), NoisePreset.parse(old));
+                profiles.add(p);
+                layers.add(new Layer(UUID.randomUUID().toString(), p.id, prefs.getBoolean("adjusted_enabled", false), prefs.getFloat("adjusted_level", .35f)));
+            } catch (IllegalArgumentException e) { PlaybackStatus.error = "Legacy profile could not be read. Import it again."; }
+            persist(true);
+        } else {
+            try {
+                JSONArray catalogue = new JSONArray(prefs.getString("catalogue", "[]"));
+                for (int i = 0; i < Math.min(catalogue.length(), MAX_PROFILES); i++) {
+                    JSONObject p = catalogue.getJSONObject(i);
+                    profiles.add(new SavedProfile(p.getString("id"), NoisePreset.parse(p.getJSONObject("profile").toString())));
+                }
+                JSONArray scene = new JSONArray(prefs.getString("generators", "[]"));
+                for (int i = 0; i < Math.min(scene.length(), MixerConfig.MAX_GENERATORS); i++) {
+                    JSONObject g = scene.getJSONObject(i);
+                    String id = g.getString("id"), profile = g.optString("profileId", "");
+                    if ("default".equals(id) || findProfile(profile) != null)
+                        layers.add(new Layer(id, "default".equals(id) ? null : profile, g.optBoolean("enabled", true), g.optDouble("level", .5)));
+                }
+            } catch (JSONException | IllegalArgumentException e) {
+                PlaybackStatus.error = "Some saved settings could not be read.";
+            }
+            Layer defaultLayer = null;
+            for (Layer l : layers) if ("default".equals(l.id)) { defaultLayer = l; break; }
+            layers.removeIf(l -> "default".equals(l.id));
+            layers.add(0, defaultLayer == null ? new Layer("default", null, true, .55) : defaultLayer);
+            while (layers.size() > MixerConfig.MAX_GENERATORS) layers.remove(layers.size() - 1);
+        }
+        rebuild();
+    }
+    public MixerConfig snapshot() { return current; }
+    public long revision() { return revision; }
+    public synchronized List<SavedProfile> profiles() { return Collections.unmodifiableList(new ArrayList<>(profiles)); }
+    public synchronized List<Layer> layers() { return Collections.unmodifiableList(new ArrayList<>(layers)); }
+    public synchronized SavedProfile findProfile(String id) {
+        for (SavedProfile p : profiles) if (p.id.equals(id)) return p;
+        return null;
+    }
+    private void rebuild() {
+        ArrayList<MixerConfig.Generator> generators = new ArrayList<>();
+        for (Layer l : layers) {
+            SavedProfile p = l.profileId == null ? null : findProfile(l.profileId);
+            if (l.profileId == null || p != null)
+                generators.add(new MixerConfig.Generator(l.id, p == null ? NoisePreset.DEFAULT : p.preset, l.enabled, l.level));
+        }
+        current = new MixerConfig(generators, master, width);
+        revision++;
+    }
+    private JSONObject layerJson(Layer l) throws JSONException {
+        return new JSONObject().put("id", l.id).put("profileId", l.profileId == null ? "" : l.profileId)
+                .put("enabled", l.enabled).put("level", l.level);
+    }
+    @SuppressLint("ApplySharedPref")
+    private void persist(boolean commit) {
+        try {
+            JSONArray catalogue = new JSONArray(), scene = new JSONArray();
+            if (commit) for (SavedProfile p : profiles) catalogue.put(new JSONObject().put("id", p.id).put("profile", new JSONObject(p.preset.toJson())));
+            for (Layer l : layers) scene.put(layerJson(l));
+            SharedPreferences.Editor edit = prefs.edit().putInt("schema", 2)
+                    .putString("generators", scene.toString()).putFloat("master", (float) master).putString("width", width.name());
+            if (commit) {
+                edit.putString("catalogue", catalogue.toString());
+                if (!edit.commit()) throw new IllegalStateException("Could not save settings. Check free storage.");
+            } else edit.apply();
+        } catch (JSONException e) { throw new IllegalStateException(e); }
+    }
+    private boolean nameExists(String name) {
+        for (SavedProfile p : profiles) if (p.preset.name.equals(name)) return true;
+        return false;
+    }
+    public synchronized String addProfile(NoisePreset preset) {
+        if (profiles.size() >= MAX_PROFILES) throw new IllegalStateException("Profile limit reached (128). Delete an unused profile first.");
+        String base = preset.name, chosen = base;
+        int suffix = 2;
+        while (nameExists(chosen)) {
+            String ending = " (" + suffix++ + ")";
+            chosen = base.substring(0, Math.min(base.length(), 80 - ending.length())) + ending;
+        }
+        if (!chosen.equals(base)) {
+            try { preset = NoisePreset.parse(new JSONObject(preset.toJson()).put("name", chosen).toString()); }
+            catch (JSONException e) { throw new IllegalStateException(e); }
+        }
+        String id = UUID.randomUUID().toString();
+        profiles.add(0, new SavedProfile(id, preset));
+        try { persist(true); } catch (RuntimeException e) { profiles.remove(0); throw e; }
+        rebuild(); return id;
+    }
+    public synchronized void renameProfile(String id, String name) {
+        SavedProfile old = findProfile(id);
+        if (old == null) throw new IllegalArgumentException("Profile no longer exists.");
+        try {
+            JSONObject json = new JSONObject(old.preset.toJson()).put("name", name);
+            NoisePreset renamed = NoisePreset.parse(json.toString());
+            int index = profiles.indexOf(old); profiles.set(index, new SavedProfile(id, renamed));
+            try { persist(true); } catch (RuntimeException e) { profiles.set(index, old); throw e; }
+            rebuild();
+        } catch (JSONException e) { throw new IllegalArgumentException(e); }
+    }
+    public synchronized void deleteProfile(String id) {
+        for (Layer l : layers) if (id.equals(l.profileId)) throw new IllegalStateException("Remove generators using this profile before deleting it.");
+        SavedProfile old = findProfile(id);
+        if (old == null) return;
+        int index = profiles.indexOf(old); profiles.remove(index);
+        try { persist(true); } catch (RuntimeException e) { profiles.add(index, old); throw e; }
+        rebuild();
+    }
+    public synchronized String addGenerator(String profileId) {
+        if (layers.size() >= MixerConfig.MAX_GENERATORS) throw new IllegalStateException("Maximum 8 generators, including Default.");
+        if (findProfile(profileId) == null) throw new IllegalArgumentException("Choose a saved profile.");
+        String id = UUID.randomUUID().toString(); layers.add(new Layer(id, profileId, true, .35));
+        try { persist(true); } catch (RuntimeException e) { layers.remove(layers.size() - 1); throw e; }
+        rebuild(); return id;
+    }
+    public synchronized void removeGenerator(String id) {
+        if ("default".equals(id)) throw new IllegalArgumentException("Default cannot be removed.");
+        ArrayList<Layer> old = new ArrayList<>(layers);
+        layers.removeIf(l -> l.id.equals(id));
+        try { persist(true); } catch (RuntimeException e) { layers = old; throw e; }
+        rebuild();
+    }
+    public synchronized void updateGenerator(String id, Boolean enabled, Double level, String profileId) {
+        for (int i = 0; i < layers.size(); i++) {
+            Layer l = layers.get(i);
+            if (!l.id.equals(id)) continue;
+            String p = profileId == null ? l.profileId : profileId;
+            if ("default".equals(id)) p = null;
+            else if (findProfile(p) == null) throw new IllegalArgumentException("Profile no longer exists.");
+            layers.set(i, new Layer(id, p, enabled == null ? l.enabled : enabled, level == null ? l.level : level));
+            persist(false); rebuild(); return;
+        }
+    }
+    public synchronized void output(double level, MixerConfig.Width value) {
+        master = MixerConfig.clamp(level); width = value == null ? MixerConfig.Width.DEFAULT : value;
+        persist(false); rebuild();
+    }
+    public boolean wantsPlayback() { return prefs.getBoolean("play_requested", false); }
+    @SuppressLint("ApplySharedPref")
+    public void setWantsPlayback(boolean wanted) { prefs.edit().putBoolean("play_requested", wanted).commit(); }
+}

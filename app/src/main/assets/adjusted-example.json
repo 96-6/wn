@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "name": "Speech bands · generic example",
+  "bands": [
+    { "lowHz": 180, "highHz": 340, "level": 0.65 },
+    { "lowHz": 650, "highHz": 1100, "level": 0.85 },
+    { "lowHz": 1800, "highHz": 2900, "level": 1.0 }
+  ]
+}

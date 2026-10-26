@@ -1,0 +1,11 @@
+<resources>
+    <item type="id" name="width_mono" />
+    <item type="id" name="width_narrow" />
+    <item type="id" name="width_default" />
+    <item type="id" name="width_wide" />
+    <string name="level_percent">%1$d%%</string>
+    <string name="profile_saved">Saved</string>
+    <string name="profile_cancelled">Cancelled</string>
+    <string name="profile_not_created">Profile not created</string>
+    <string name="microphone_denied">Microphone permission denied.</string>
+</resources>
